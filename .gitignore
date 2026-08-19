@@ -1,0 +1,44 @@
+# Environment & Local Secrets
+.env
+*.local.json
+
+# .NET & Visual Studio
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+_ReSharper*/
+*.dotCover
+
+# Python & uv / Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.uv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# DuckDB
+*.duckdb
+*.duckdb.tmp
+*.duckdb.wal
+
+# Docker & Database
+data/
+pgdata/
+
+# Logs & Temp
+logs/
+*.log
+scratch/
+.system_generated/

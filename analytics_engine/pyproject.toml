@@ -1,0 +1,20 @@
+[project]
+name = "azuredevops-analytics-engine"
+version = "1.0.0"
+description = "Vectorized OLAP Transformation Engine for Azure DevOps metrics to Power BI using DuckDB and PostgreSQL"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "duckdb>=1.0.0",
+    "psycopg2-binary>=2.9.9",
+    "python-dotenv>=1.0.1",
+    "pandas>=2.2.0",
+    "pytz>=2024.1"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
