@@ -16,6 +16,35 @@ CREATE SCHEMA IF NOT EXISTS analytics;
 -- 1. STAGING SCHEMA: WATERMARKING & RAW DATA
 -- -----------------------------------------------------------------------------
 
+-- Catálogo de Colecciones Descubiertas
+CREATE TABLE IF NOT EXISTS staging.catalog_collections (
+    collection_name VARCHAR(255) PRIMARY KEY,
+    description TEXT,
+    is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    last_discovered_utc TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Catálogo de Proyectos Descubiertos
+CREATE TABLE IF NOT EXISTS staging.catalog_projects (
+    project_id UUID PRIMARY KEY,
+    collection_name VARCHAR(255) NOT NULL REFERENCES staging.catalog_collections(collection_name),
+    project_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    process_template VARCHAR(100),
+    state VARCHAR(50),
+    is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    access_status VARCHAR(50) NOT NULL DEFAULT 'AUTHORIZED',
+    last_discovered_utc TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (collection_name, project_name)
+);
+
+-- Configuración del Sistema Dual
+CREATE TABLE IF NOT EXISTS staging.system_configuration (
+    config_key VARCHAR(100) PRIMARY KEY,
+    config_value JSONB NOT NULL,
+    updated_at_utc TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Control de marcas de agua para sincronización incremental (Delta Sync)
 CREATE TABLE IF NOT EXISTS staging.sync_watermarks (
     entity_name VARCHAR(100) NOT NULL,

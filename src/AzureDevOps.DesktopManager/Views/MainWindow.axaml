@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AzureDevOps.DesktopManager.Views.MainWindow"
+        x:CompileBindings="False"
+        Title="Azure DevOps BI Manager" Width="800" Height="600"
+        WindowStartupLocation="CenterScreen">
+    <TabControl>
+        <!-- Dashboard -->
+        <TabItem Header="Dashboard">
+            <StackPanel Margin="20" Spacing="20">
+                <TextBlock Text="Azure DevOps BI Sync Status" FontSize="24" FontWeight="Bold" />
+                
+                <Border Background="#F0F0F0" CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Sistema de Ingesta: En Ejecución" FontSize="16" />
+                        <TextBlock Text="Última Ejecución: Hace 5 min" FontSize="14" Foreground="Gray" />
+                        
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <!-- Semáforos visuales (Placeholder) -->
+                            <Ellipse Width="16" Height="16" Fill="Green" />
+                            <TextBlock Text="Base de Datos Conectada" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Width="16" Height="16" Fill="Green" />
+                            <TextBlock Text="Azure DevOps API Conectado" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </TabItem>
+
+        <!-- Catálogo -->
+        <TabItem Header="Catálogo (Proyectos)">
+            <Grid RowDefinitions="*, Auto" Margin="10">
+                <DataGrid Grid.Row="0" Name="ProjectsGrid" AutoGenerateColumns="False" CanUserReorderColumns="True" CanUserResizeColumns="True" CanUserSortColumns="True" GridLinesVisibility="All">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Collection" Binding="{Binding CollectionName}" />
+                        <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" />
+                        <DataGridTextColumn Header="Access Status" Binding="{Binding AccessStatus}" />
+                        <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding IsEnabled}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Button Grid.Row="1" Content="Guardar Cambios" Margin="0,10,0,0" HorizontalAlignment="Right" />
+            </Grid>
+        </TabItem>
+
+        <!-- Configuración -->
+        <TabItem Header="Configuración">
+            <StackPanel Margin="20" Spacing="15" MaxWidth="500" HorizontalAlignment="Left">
+                <TextBlock Text="Configuración de Conexión" FontSize="18" FontWeight="SemiBold" />
+                
+                <TextBlock Text="Base URL:" />
+                <TextBox Text="{Binding BaseUrl}" Watermark="https://dev.azure.com/" />
+                
+                <TextBlock Text="Collection:" />
+                <TextBox Text="{Binding Collection}" Watermark="DefaultCollection" />
+                
+                <TextBlock Text="API Version:" />
+                <TextBox Text="{Binding ApiVersion}" Watermark="5.0-preview" />
+                
+                <TextBlock Text="Personal Access Token (PAT):" />
+                <TextBox Text="{Binding Token}" PasswordChar="*" />
+                
+                <Button Content="Test TFS Connection" Margin="0,10,0,0" />
+                <Button Content="Guardar Configuración" Margin="0,5,0,0" />
+            </StackPanel>
+        </TabItem>
+
+        <!-- Logs -->
+        <TabItem Header="Logs (Vivo)">
+            <ListBox Margin="10" Background="#1E1E1E" Foreground="#CCCCCC">
+                <TextBlock Text="[2026-08-20 10:00:00] [INFO] Manager started." />
+                <TextBlock Text="[2026-08-20 10:00:01] [INFO] Polling Azure DevOps..." />
+            </ListBox>
+        </TabItem>
+    </TabControl>
+</Window>

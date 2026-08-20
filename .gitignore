@@ -42,3 +42,4 @@ logs/
 *.log
 scratch/
 .system_generated/
+.artifacts/

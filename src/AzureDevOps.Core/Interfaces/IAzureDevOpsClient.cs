@@ -18,4 +18,9 @@ public interface IAzureDevOpsClient
     /// Streams work items in chunks of batchSize (max 200) asynchronously.
     /// </summary>
     IAsyncEnumerable<List<WorkItemDto>> StreamWorkItemBatchesAsync(string collection, IReadOnlyList<int> workItemIds, int batchSize = 200, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Discovers all projects within a given collection.
+    /// </summary>
+    Task<List<AzureDevOps.Core.Models.Discovery.TeamProjectDto>> GetProjectsAsync(string collection, CancellationToken cancellationToken = default);
 }

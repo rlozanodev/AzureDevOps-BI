@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/AzureDevOps.Core/AzureDevOps.Core.csproj" />
+    <Project Path="src/AzureDevOps.DesktopManager/AzureDevOps.DesktopManager.csproj" />
     <Project Path="src/AzureDevOps.IngestionWorker/AzureDevOps.IngestionWorker.csproj" />
     <Project Path="src/AzureDevOps.MockServer/AzureDevOps.MockServer.csproj" />
   </Folder>

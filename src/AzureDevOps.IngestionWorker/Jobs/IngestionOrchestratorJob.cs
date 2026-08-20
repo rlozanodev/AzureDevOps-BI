@@ -14,9 +14,10 @@ public class IngestionOrchestratorJob : BackgroundService
 {
     private readonly IAzureDevOpsClient _azureDevOpsClient;
     private readonly IWorkItemStagingRepository _stagingRepository;
+    private readonly ICatalogRepository _catalogRepository;
     private readonly IPythonTransformationService _transformationService;
     private readonly IPowerBiRefreshService _powerBiService;
-    private readonly AzureDevOpsOptions _devOpsOptions;
+    private readonly IOptionsMonitor<AzureDevOpsOptions> _devOpsOptionsMonitor;
     private readonly TransformationOptions _transformationOptions;
     private readonly PowerBiOptions _powerBiOptions;
     private readonly ILogger<IngestionOrchestratorJob> _logger;
@@ -24,18 +25,20 @@ public class IngestionOrchestratorJob : BackgroundService
     public IngestionOrchestratorJob(
         IAzureDevOpsClient azureDevOpsClient,
         IWorkItemStagingRepository stagingRepository,
+        ICatalogRepository catalogRepository,
         IPythonTransformationService transformationService,
         IPowerBiRefreshService powerBiService,
-        IOptions<AzureDevOpsOptions> devOpsOptions,
+        IOptionsMonitor<AzureDevOpsOptions> devOpsOptionsMonitor,
         IOptions<TransformationOptions> transformationOptions,
         IOptions<PowerBiOptions> powerBiOptions,
         ILogger<IngestionOrchestratorJob> logger)
     {
         _azureDevOpsClient = azureDevOpsClient;
         _stagingRepository = stagingRepository;
+        _catalogRepository = catalogRepository;
         _transformationService = transformationService;
         _powerBiService = powerBiService;
-        _devOpsOptions = devOpsOptions.Value;
+        _devOpsOptionsMonitor = devOpsOptionsMonitor;
         _transformationOptions = transformationOptions.Value;
         _powerBiOptions = powerBiOptions.Value;
         _logger = logger;
@@ -43,161 +46,191 @@ public class IngestionOrchestratorJob : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var devOpsOptions = _devOpsOptionsMonitor.CurrentValue;
         _logger.LogInformation("Azure DevOps Ingestion Orchestrator Service started. Poll interval: {Interval}s",
-            _devOpsOptions.PollIntervalSeconds);
+            devOpsOptions.PollIntervalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var syncStartUtc = DateTime.UtcNow;
-            var entityName = "work_items";
-            var collectionName = _devOpsOptions.Collection;
-            var projectName = _devOpsOptions.Project ?? string.Empty;
+            devOpsOptions = _devOpsOptionsMonitor.CurrentValue;
+            var collectionName = devOpsOptions.Collection;
 
             try
             {
                 _logger.LogInformation("================================================================================");
-                _logger.LogInformation("Starting Ingestion Cycle for Collection: '{Collection}', Project: '{Project}' at {Time:u}",
-                    collectionName, string.IsNullOrWhiteSpace(projectName) ? "(ALL)" : projectName, syncStartUtc);
+                _logger.LogInformation("Starting Ingestion Cycle for Collection: '{Collection}' at {Time:u}",
+                    collectionName, DateTime.UtcNow);
 
-                // 1. Fetch current watermark
-                var watermark = await _stagingRepository.GetWatermarkAsync(entityName, collectionName, projectName, stoppingToken);
-                _logger.LogInformation("Current Delta Watermark: {Watermark:u} (Status: {Status})",
-                    watermark.LastWatermarkUtc, watermark.Status);
-
-                await _stagingRepository.UpdateWatermarkStartAsync(entityName, collectionName, projectName, syncStartUtc, stoppingToken);
-
-                // 2. Query Work Item IDs using WIQL (incremental delta)
-                var changedSince = watermark.LastWatermarkUtc > new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-                    ? watermark.LastWatermarkUtc
-                    : (DateTime?)null;
-
-                var workItemIds = await _azureDevOpsClient.QueryWorkItemIdsAsync(
-                    collectionName,
-                    projectName,
-                    changedSince,
-                    stoppingToken
-                );
-
-                var totalItemsFound = workItemIds.Count;
-                var totalSynced = 0;
-                var maxChangedDateUtc = watermark.LastWatermarkUtc;
-
-                if (totalItemsFound > 0)
+                // 1. Fase de Descubrimiento (Scraping)
+                _logger.LogInformation("--- FASE 1: Descubrimiento de Proyectos ---");
+                try
                 {
-                    _logger.LogInformation("Discovered {Count} work item(s) to synchronize in batches of max {BatchSize}...",
-                        totalItemsFound, _devOpsOptions.BatchSize);
+                    var discoveredProjects = await _azureDevOpsClient.GetProjectsAsync(collectionName, stoppingToken);
+                    await _catalogRepository.UpsertProjectsAsync(collectionName, discoveredProjects, stoppingToken);
+                    _logger.LogInformation("Descubrimiento completado. Encontrados {Count} proyectos.", discoveredProjects.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error durante la fase de descubrimiento.");
+                    // Continues to ingestion phase with already known projects
+                }
 
-                    // 3. Stream & Process in Batches of max 200
-                    await foreach (var batch in _azureDevOpsClient.StreamWorkItemBatchesAsync(
-                        collectionName,
-                        workItemIds,
-                        _devOpsOptions.BatchSize,
-                        stoppingToken))
+                // 2. Fase de Ingesta Aislada (Por Proyecto)
+                _logger.LogInformation("--- FASE 2: Ingesta Aislada ---");
+                var activeProjects = await _catalogRepository.GetEnabledProjectsAsync(stoppingToken);
+                _logger.LogInformation("Proyectos activos habilitados para ingesta: {Count}", activeProjects.Count);
+
+                foreach (var project in activeProjects)
+                {
+                    var syncStartUtc = DateTime.UtcNow;
+                    var entityName = "work_items";
+                    var projectName = project.ProjectName;
+
+                    _logger.LogInformation("Procesando proyecto: {ProjectName}", projectName);
+
+                    try
                     {
-                        var entities = new List<RawWorkItemEntity>(batch.Count);
+                        var watermark = await _stagingRepository.GetWatermarkAsync(entityName, collectionName, projectName, stoppingToken);
+                        await _stagingRepository.UpdateWatermarkStartAsync(entityName, collectionName, projectName, syncStartUtc, stoppingToken);
 
-                        foreach (var dto in batch)
+                        var changedSince = watermark.LastWatermarkUtc > new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                            ? watermark.LastWatermarkUtc
+                            : (DateTime?)null;
+
+                        var workItemIds = await _azureDevOpsClient.QueryWorkItemIdsAsync(
+                            collectionName,
+                            projectName,
+                            changedSince,
+                            stoppingToken
+                        );
+
+                        var totalItemsFound = workItemIds.Count;
+                        var totalSynced = 0;
+                        var maxChangedDateUtc = watermark.LastWatermarkUtc;
+
+                        if (totalItemsFound > 0)
                         {
-                            var entity = MapToEntity(dto);
-                            entities.Add(entity);
-
-                            if (entity.ChangedDate > maxChangedDateUtc)
+                            await foreach (var batch in _azureDevOpsClient.StreamWorkItemBatchesAsync(
+                                collectionName,
+                                workItemIds,
+                                devOpsOptions.BatchSize,
+                                stoppingToken))
                             {
-                                maxChangedDateUtc = entity.ChangedDate;
+                                var entities = new List<RawWorkItemEntity>(batch.Count);
+
+                                foreach (var dto in batch)
+                                {
+                                    var entity = MapToEntity(dto);
+                                    entities.Add(entity);
+
+                                    if (entity.ChangedDate > maxChangedDateUtc)
+                                    {
+                                        maxChangedDateUtc = entity.ChangedDate;
+                                    }
+                                }
+
+                                await _stagingRepository.UpsertRawWorkItemsBatchAsync(entities, stoppingToken);
+                                totalSynced += entities.Count;
                             }
+
+                            var syncEndUtc = DateTime.UtcNow;
+                            await _stagingRepository.UpdateWatermarkSuccessAsync(
+                                entityName,
+                                collectionName,
+                                projectName,
+                                maxChangedDateUtc,
+                                totalSynced,
+                                syncEndUtc,
+                                stoppingToken
+                            );
+                            
+                            // Restore authorized access status in case it was forbidden before
+                            if (project.AccessStatus != "AUTHORIZED")
+                            {
+                                await _catalogRepository.MarkProjectAccessStatusAsync(project.ProjectId, "AUTHORIZED", stoppingToken);
+                            }
+
+                            _logger.LogInformation("Proyecto {ProjectName} sincronizado: {Count} items.", projectName, totalSynced);
                         }
-
-                        // 4. Idempotent Upsert to Staging
-                        var rowsAffected = await _stagingRepository.UpsertRawWorkItemsBatchAsync(entities, stoppingToken);
-                        totalSynced += entities.Count;
-
-                        _logger.LogInformation("Batch persisted. Progress: {TotalSynced}/{TotalItemsFound} items.",
-                            totalSynced, totalItemsFound);
+                        else
+                        {
+                            _logger.LogInformation("Proyecto {ProjectName} sin cambios desde {Watermark:u}.", projectName, watermark.LastWatermarkUtc);
+                            await _stagingRepository.UpdateWatermarkSuccessAsync(
+                                entityName,
+                                collectionName,
+                                projectName,
+                                watermark.LastWatermarkUtc,
+                                0,
+                                DateTime.UtcNow,
+                                stoppingToken
+                            );
+                        }
                     }
-
-                    var syncEndUtc = DateTime.UtcNow;
-                    await _stagingRepository.UpdateWatermarkSuccessAsync(
-                        entityName,
-                        collectionName,
-                        projectName,
-                        maxChangedDateUtc,
-                        totalSynced,
-                        syncEndUtc,
-                        stoppingToken
-                    );
-
-                    _logger.LogInformation("Ingestion staging completed successfully. Synced {Count} items in {Duration:N2}s. New Watermark: {Watermark:u}",
-                        totalSynced, (syncEndUtc - syncStartUtc).TotalSeconds, maxChangedDateUtc);
+                    catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        _logger.LogWarning("Acceso denegado (403) para el proyecto {ProjectName}. Se saltará en futuros ciclos.", projectName);
+                        await _catalogRepository.MarkProjectAccessStatusAsync(project.ProjectId, "FORBIDDEN", stoppingToken);
+                        
+                        await _stagingRepository.UpdateWatermarkFailureAsync(
+                            entityName,
+                            collectionName,
+                            projectName,
+                            "403 Forbidden",
+                            DateTime.UtcNow,
+                            stoppingToken
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error al sincronizar el proyecto {ProjectName}.", projectName);
+                        await _stagingRepository.UpdateWatermarkFailureAsync(
+                            entityName,
+                            collectionName,
+                            projectName,
+                            ex.Message,
+                            DateTime.UtcNow,
+                            stoppingToken
+                        );
+                    }
                 }
-                else
-                {
-                    _logger.LogInformation("No new or modified work items found since {Watermark:u}.", watermark.LastWatermarkUtc);
-                    await _stagingRepository.UpdateWatermarkSuccessAsync(
-                        entityName,
-                        collectionName,
-                        projectName,
-                        watermark.LastWatermarkUtc,
-                        0,
-                        DateTime.UtcNow,
-                        stoppingToken
-                    );
-                }
 
-                // 5. Trigger Transformation Engine (Python + DuckDB)
+                // 3. Fase de Transformación Unificada
+                _logger.LogInformation("--- FASE 3: Transformación Unificada ---");
                 if (_transformationOptions.Enabled)
                 {
-                    _logger.LogInformation("Executing OLAP Transformation Engine (DuckDB)...");
+                    _logger.LogInformation("Ejecutando DuckDB Transform...");
                     var transformResult = await _transformationService.RunTransformationAsync(stoppingToken);
 
                     if (transformResult.Success)
                     {
-                        // 6. Trigger Power BI Dataset Refresh
                         if (_powerBiOptions.Enabled)
                         {
-                            _logger.LogInformation("Triggering Power BI dataset refresh...");
+                            _logger.LogInformation("Refrescando Power BI...");
                             await _powerBiService.TriggerRefreshAsync(stoppingToken);
                         }
                     }
                     else
                     {
-                        _logger.LogError("OLAP Transformation encountered errors: {Error}", transformResult.ErrorMessage);
+                        _logger.LogError("Error en Transformación: {Error}", transformResult.ErrorMessage);
                     }
                 }
 
-                _logger.LogInformation("Ingestion Cycle finished cleanly. Next cycle in {Seconds} seconds.",
-                    _devOpsOptions.PollIntervalSeconds);
+                _logger.LogInformation("Ciclo completo. Esperando {Seconds} segundos.", devOpsOptions.PollIntervalSeconds);
                 _logger.LogInformation("================================================================================");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Ingestion Worker is shutting down as requested.");
+                _logger.LogInformation("Orquestador deteniéndose.");
                 break;
             }
             catch (Exception ex)
             {
-                var syncEndUtc = DateTime.UtcNow;
-                _logger.LogError(ex, "Error during Azure DevOps ingestion cycle: {Message}", ex.Message);
-
-                try
-                {
-                    await _stagingRepository.UpdateWatermarkFailureAsync(
-                        entityName,
-                        collectionName,
-                        projectName,
-                        ex.Message,
-                        syncEndUtc,
-                        CancellationToken.None
-                    );
-                }
-                catch (Exception dbEx)
-                {
-                    _logger.LogError(dbEx, "Failed to record sync failure state in database.");
-                }
+                _logger.LogError(ex, "Error crítico en el ciclo de orquestación.");
             }
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(_devOpsOptions.PollIntervalSeconds), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(devOpsOptions.PollIntervalSeconds), stoppingToken);
             }
             catch (OperationCanceledException)
             {

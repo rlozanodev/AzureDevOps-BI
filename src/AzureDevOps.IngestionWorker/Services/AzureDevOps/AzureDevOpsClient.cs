@@ -5,6 +5,7 @@ using AzureDevOps.Core.Configuration;
 using AzureDevOps.Core.Interfaces;
 using AzureDevOps.Core.Models.Wiql;
 using AzureDevOps.Core.Models.WorkItems;
+using AzureDevOps.Core.Models.Discovery;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -151,5 +152,23 @@ public class AzureDevOpsClient : IAzureDevOpsClient
             var items = await GetWorkItemsBatchAsync(collection, chunk, cancellationToken);
             yield return items;
         }
+    }
+
+    public async Task<List<TeamProjectDto>> GetProjectsAsync(string collection, CancellationToken cancellationToken = default)
+    {
+        var baseUrl = _options.BaseUrl.TrimEnd('/');
+        var cleanCollection = collection.Trim('/');
+        // Note: For Azure DevOps Server 2019/2020/2022, api-version for projects might need to be 5.0-preview, 
+        // we'll use the API version from configuration, or append a default if needed. 
+        // The plan says api-version=5.0-preview
+        var requestUrl = $"{baseUrl}/{cleanCollection}/_apis/projects?api-version=5.0-preview&$top=1000";
+
+        _logger.LogInformation("Discovering projects at {Url}", requestUrl);
+
+        var response = await _httpClient.GetAsync(requestUrl, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ProjectsResponse>(JsonOptions, cancellationToken);
+        return result?.Value ?? new List<TeamProjectDto>();
     }
 }

@@ -49,6 +49,8 @@ try
 
             // Repositories & Services
             services.AddSingleton<IWorkItemStagingRepository, WorkItemStagingRepository>();
+            services.AddSingleton<ICatalogRepository, CatalogRepository>();
+            services.AddSingleton<IConfigurationRepository, ConfigurationRepository>();
             services.AddSingleton<IPythonTransformationService, PythonTransformationService>();
             services.AddSingleton<IPowerBiRefreshService, PowerBiRefreshService>();
 
