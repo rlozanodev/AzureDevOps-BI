@@ -43,3 +43,7 @@ logs/
 scratch/
 .system_generated/
 .artifacts/
+
+# Herramientas locales de sincronización
+sync-corp.sh
+.last_sync_commit
