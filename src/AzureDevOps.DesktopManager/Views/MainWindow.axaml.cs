@@ -45,4 +45,11 @@ public partial class MainWindow : Window
 
     private async void OnGuardarConfiguracionClick(object? sender, RoutedEventArgs e)
         => await _vm.SaveConfigurationAsync();
+
+    // ─── Logs ─────────────────────────────────────────────────────────────────
+    private async void OnPrevLogDateClick(object? sender, RoutedEventArgs e)
+        => await _vm.PrevLogDateAsync();
+
+    private async void OnNextLogDateClick(object? sender, RoutedEventArgs e)
+        => await _vm.NextLogDateAsync();
 }

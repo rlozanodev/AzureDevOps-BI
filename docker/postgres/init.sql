@@ -324,3 +324,16 @@ JOIN analytics.dim_area a ON f.area_key = a.area_key
 JOIN analytics.dim_member m_ass ON f.assigned_to_key = m_ass.member_key
 JOIN analytics.dim_member m_cre ON f.created_by_key = m_cre.member_key;
 
+
+-- -----------------------------------------------------------------------------
+-- 4. SYSTEM LOGS
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS staging.system_logs (
+    log_id SERIAL PRIMARY KEY,
+    log_level VARCHAR(20) NOT NULL,
+    source_context VARCHAR(255),
+    message TEXT NOT NULL,
+    exception TEXT,
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_system_logs_date ON staging.system_logs(created_at_utc DESC);

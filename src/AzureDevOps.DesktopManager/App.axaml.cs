@@ -46,7 +46,7 @@ public partial class App : Application
                     // 2. Variables de entorno sobreescriben (ideal para producción / Docker)
                     config.AddEnvironmentVariables();
                 })
-                .ConfigureLogging(logging =>
+                .ConfigureLogging((hostContext, logging) =>
                 {
                     logging.ClearProviders();
                     logging.AddSimpleConsole(options => 
@@ -58,6 +58,7 @@ public partial class App : Application
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+                    services.AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider, Services.DatabaseLoggerProvider>();
                     var config = hostContext.Configuration;
 
                     // ── Opciones ─────────────────────────────────────────────
@@ -67,6 +68,7 @@ public partial class App : Application
                     // ── Repositorios ─────────────────────────────────────────
                     services.AddSingleton<ICatalogRepository, CatalogRepository>();
                     services.AddSingleton<IConfigurationRepository, ConfigurationRepository>();
+                    services.AddSingleton<AzureDevOps.Core.Interfaces.ILogRepository, AzureDevOps.IngestionWorker.Services.Database.LogRepository>();
 
                     // ── ViewModel (transient: una instancia nueva por ventana) ─
                     services.AddTransient<MainWindowViewModel>();
@@ -77,6 +79,7 @@ public partial class App : Application
                 .Build();
 
             AppHost.Start();
+            _ = System.Threading.Tasks.Task.Run(() => AppHost.Services.GetRequiredService<AzureDevOps.Core.Interfaces.ILogRepository>().InitializeSchemaAsync());
 
             desktop.MainWindow = new Views.MainWindow();
 

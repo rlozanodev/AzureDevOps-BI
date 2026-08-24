@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -57,6 +58,7 @@ public class ProjectRowViewModel : INotifyPropertyChanged
 public class MainWindowViewModel : INotifyPropertyChanged
 {
     private readonly ICatalogRepository _catalogRepository;
+    private readonly AzureDevOps.Core.Interfaces.ILogRepository _logRepository;
     private readonly IConfigurationRepository _configurationRepository;
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly AzureDevOpsOptions _devOpsOptions;
@@ -69,8 +71,28 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private string _collection = string.Empty;
     private string _apiVersion = string.Empty;
     private string _token = string.Empty;
+    private bool _useDefaultCredentials = true;
+    public bool UseDefaultCredentials { get => _useDefaultCredentials; set { _useDefaultCredentials = value; OnPropertyChanged(); } }
+    private string _authDomain = string.Empty;
+    public string AuthDomain { get => _authDomain; set { _authDomain = value; OnPropertyChanged(); } }
+    private string _authUsername = string.Empty;
+    public string AuthUsername { get => _authUsername; set { _authUsername = value; OnPropertyChanged(); } }
+    private string _authPassword = string.Empty;
+    public string AuthPassword { get => _authPassword; set { _authPassword = value; OnPropertyChanged(); } }
+
 
     public ObservableCollection<ProjectRowViewModel> Projects { get; } = [];
+    public ObservableCollection<AzureDevOps.Core.Interfaces.SystemLogEntity> CurrentLogs { get; } = new();
+    private List<DateTime> _availableLogDates = new();
+    private int _currentLogDateIndex = 0;
+    
+    private string _currentLogDateLabel = "Sin Logs";
+    public string CurrentLogDateLabel
+    {
+        get => _currentLogDateLabel;
+        set { _currentLogDateLabel = value; OnPropertyChanged(); }
+    }
+
 
     public string StatusMessage
     {
@@ -117,10 +139,12 @@ public class MainWindowViewModel : INotifyPropertyChanged
     public MainWindowViewModel(
         ICatalogRepository catalogRepository,
         IConfigurationRepository configurationRepository,
+        AzureDevOps.Core.Interfaces.ILogRepository logRepository,
         IOptions<AzureDevOpsOptions> devOpsOptions,
         ILogger<MainWindowViewModel> logger)
     {
         _catalogRepository = catalogRepository;
+        _logRepository = logRepository;
         _configurationRepository = configurationRepository;
         _devOpsOptions = devOpsOptions.Value;
         _logger = logger;
@@ -255,7 +279,16 @@ public class MainWindowViewModel : INotifyPropertyChanged
         StatusMessage = $"Probando conexión a {BaseUrl}…";
         try
         {
-            using var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                        var handler = new System.Net.Http.HttpClientHandler();
+            if (UseDefaultCredentials)
+            {
+                handler.UseDefaultCredentials = true;
+            }
+            else
+            {
+                handler.Credentials = new System.Net.NetworkCredential(AuthUsername, AuthPassword, AuthDomain);
+            }
+            using var httpClient = new System.Net.Http.HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
             var response = await Task.Run(() => httpClient.GetAsync(BaseUrl.TrimEnd('/') + "/" + Collection, ct), ct);
             if (response.IsSuccessStatusCode)
             {
@@ -284,13 +317,21 @@ public class MainWindowViewModel : INotifyPropertyChanged
         StatusMessage = "Guardando configuración…";
         try
         {
-            var configJson = System.Text.Json.JsonSerializer.Serialize(new
+                        var config = new AzureDevOpsOptions
             {
-                BaseUrl,
-                Collection,
-                ApiVersion
-            });
-            await _configurationRepository.SetConfigurationAsync("SystemConfig", configJson, ct);
+                BaseUrl = this.BaseUrl,
+                Collection = this.Collection,
+                ApiVersion = this.ApiVersion,
+                Auth = new AzureDevOpsAuthOptions
+                {
+                    UseDefaultCredentials = this.UseDefaultCredentials,
+                    Domain = string.IsNullOrWhiteSpace(this.AuthDomain) ? null : this.AuthDomain,
+                    Username = string.IsNullOrWhiteSpace(this.AuthUsername) ? null : this.AuthUsername,
+                    Password = string.IsNullOrWhiteSpace(this.AuthPassword) ? null : this.AuthPassword
+                }
+            };
+            var configJson = System.Text.Json.JsonSerializer.Serialize(config);
+            await Task.Run(() => _configurationRepository.SetConfigurationAsync("SystemConfig", configJson, ct), ct);
             StatusMessage = "Configuración guardada en la base de datos.";
             _logger.LogInformation("System configuration saved to DB.");
             ShowNotification("Configuración Guardada", "Los cambios se guardaron con éxito en la base de datos.", false);
@@ -307,4 +348,45 @@ public class MainWindowViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    public async Task LoadAvailableLogDatesAsync(System.Threading.CancellationToken ct = default)
+    {
+        _availableLogDates = await Task.Run(() => _logRepository.GetAvailableDatesAsync(ct));
+        if (_availableLogDates.Count > 0)
+        {
+            _currentLogDateIndex = 0;
+            await LoadLogsForCurrentDateAsync();
+        }
+    }
+
+    public async Task NextLogDateAsync()
+    {
+        if (_currentLogDateIndex > 0)
+        {
+            _currentLogDateIndex--;
+            await LoadLogsForCurrentDateAsync();
+        }
+    }
+
+    public async Task PrevLogDateAsync()
+    {
+        if (_currentLogDateIndex < _availableLogDates.Count - 1)
+        {
+            _currentLogDateIndex++;
+            await LoadLogsForCurrentDateAsync();
+        }
+    }
+
+    private async Task LoadLogsForCurrentDateAsync()
+    {
+        if (_availableLogDates.Count == 0) return;
+        var date = _availableLogDates[_currentLogDateIndex];
+        CurrentLogDateLabel = date.ToString("yyyy-MM-dd");
+        var logs = await Task.Run(() => _logRepository.GetLogsByDateAsync(date));
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => 
+        {
+            CurrentLogs.Clear();
+            foreach (var log in logs) CurrentLogs.Add(log);
+        });
+    }
 }
