@@ -119,7 +119,7 @@
                     <TextBlock Text="MENÚ PRINCIPAL" FontSize="11" FontWeight="Bold" Foreground="#9CA3AF" Margin="24,8,24,8" />
                     
                     <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}"
-                                 Command="{Binding SetTab}" CommandParameter="0">
+                                 Click="OnNavTabClick" CommandParameter="0">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="📊" FontSize="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
@@ -127,7 +127,7 @@
                     </RadioButton>
                     
                     <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
-                                 Command="{Binding SetTab}" CommandParameter="1">
+                                 Click="OnNavTabClick" CommandParameter="1">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="📂" FontSize="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Catálogo de Proyectos" VerticalAlignment="Center"/>
@@ -135,7 +135,7 @@
                     </RadioButton>
 
                     <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
-                                 Command="{Binding SetTab}" CommandParameter="2">
+                                 Click="OnNavTabClick" CommandParameter="2">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="⚙️" FontSize="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Configuración TFS" VerticalAlignment="Center"/>
@@ -143,7 +143,7 @@
                     </RadioButton>
                     
                     <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
-                                 Command="{Binding SetTab}" CommandParameter="3">
+                                 Click="OnNavTabClick" CommandParameter="3">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="📝" FontSize="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Live Logs &amp; Debug" VerticalAlignment="Center"/>
@@ -192,13 +192,13 @@
                                         <TextBlock Text="Información de Depuración" FontSize="18" FontWeight="Bold"/>
                                         <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="150, *">
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Conexión BD:" Foreground="#6B7280" Margin="0,4"/>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding IsDbConnected}" FontWeight="SemiBold" Margin="0,4"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding IsDbConnected, StringFormat='{}{0}'}" FontWeight="SemiBold" Margin="0,4"/>
                                             
                                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Identity Name:" Foreground="#6B7280" Margin="0,4"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MachineUserName}" FontWeight="SemiBold" Margin="0,4"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MachineUserName, FallbackValue='(Vacio)'}" FontWeight="SemiBold" Margin="0,4"/>
 
                                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Host OS:" Foreground="#6B7280" Margin="0,4"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OSVersion}" FontWeight="SemiBold" Margin="0,4"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OSVersion, FallbackValue='(Vacio)'}" FontWeight="SemiBold" Margin="0,4"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>

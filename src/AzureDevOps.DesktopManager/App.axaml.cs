@@ -102,6 +102,7 @@ public partial class App : Application
 
     private void ForceSync_Click(object? sender, EventArgs e)
     {
+        Console.WriteLine("[DEBUG] ForceSync was clicked from Tray Icon!");
         // TO DO: Trigger sync manually via IConfigurationRepository
     }
 

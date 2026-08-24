@@ -22,6 +22,17 @@ public partial class MainWindow : Window
         Opened += async (_, _) => await _vm.LoadProjectsAsync();
     }
 
+    // ─── Navegación ───────────────────────────────────────────────────────────
+    
+    private void OnNavTabClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton rb && rb.CommandParameter is string tab)
+        {
+            _vm.CurrentTab = tab;
+            Console.WriteLine($"[DEBUG] Changed tab to {tab}");
+        }
+    }
+
     // ─── Catálogo ─────────────────────────────────────────────────────────────
 
     private async void OnGuardarCambiosClick(object? sender, RoutedEventArgs e)
