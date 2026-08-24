@@ -94,7 +94,8 @@ public class EndToEndPipelineTests
 
         // Verify Fact Work Items
         var factCompleted = await conn.QuerySingleOrDefaultAsync<dynamic>(
-            "SELECT * FROM analytics.fact_work_items WHERE work_item_id = 88801;");
+            "SELECT * FROM analytics.fact_work_items WHERE work_item_id = 88801;")
+            ?? throw new InvalidOperationException("factCompleted is null");
 
         ((object)factCompleted).Should().NotBeNull();
         ((decimal)factCompleted.lead_time_days).Should().Be(9.00m);
@@ -104,7 +105,8 @@ public class EndToEndPipelineTests
         ((bool)factCompleted.is_active).Should().BeFalse();
 
         var factActive = await conn.QuerySingleOrDefaultAsync<dynamic>(
-            "SELECT * FROM analytics.fact_work_items WHERE work_item_id = 88802;");
+            "SELECT * FROM analytics.fact_work_items WHERE work_item_id = 88802;")
+            ?? throw new InvalidOperationException("factActive is null");
 
         ((object)factActive).Should().NotBeNull();
         ((bool)factActive.is_closed).Should().BeFalse();

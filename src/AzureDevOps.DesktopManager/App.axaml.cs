@@ -25,6 +25,10 @@ public partial class App : Application
             AppHost = Host.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
+                    var config = hostContext.Configuration;
+                    services.Configure<AzureDevOps.Core.Configuration.DatabaseOptions>(config.GetSection(AzureDevOps.Core.Configuration.DatabaseOptions.SectionName));
+                    services.AddSingleton<AzureDevOps.Core.Interfaces.IConfigurationRepository, AzureDevOps.IngestionWorker.Services.Database.ConfigurationRepository>();
+                    
                     // Here we will register everything needed. 
                     services.AddHostedService<Services.ConfigurationSyncService>();
                     // Normally we would share the IServiceCollection with the IngestionWorker setup here.
