@@ -118,7 +118,7 @@
                 <StackPanel Margin="0,16">
                     <TextBlock Text="MENÚ PRINCIPAL" FontSize="11" FontWeight="Bold" Foreground="#9CA3AF" Margin="24,8,24,8" />
                     
-                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}"
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}"
                                  Click="OnNavTabClick" CommandParameter="0">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="📊" FontSize="18" VerticalAlignment="Center"/>
@@ -126,7 +126,7 @@
                         </StackPanel>
                     </RadioButton>
                     
-                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
                                  Click="OnNavTabClick" CommandParameter="1">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="📂" FontSize="18" VerticalAlignment="Center"/>
@@ -134,7 +134,7 @@
                         </StackPanel>
                     </RadioButton>
 
-                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
                                  Click="OnNavTabClick" CommandParameter="2">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="⚙️" FontSize="18" VerticalAlignment="Center"/>
@@ -142,7 +142,7 @@
                         </StackPanel>
                     </RadioButton>
                     
-                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
                                  Click="OnNavTabClick" CommandParameter="3">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="📝" FontSize="18" VerticalAlignment="Center"/>
