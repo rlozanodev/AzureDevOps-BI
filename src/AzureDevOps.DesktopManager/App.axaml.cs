@@ -95,7 +95,7 @@ public partial class App : Application
                         var dynamicOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
                         return NtlmHttpHandlerFactory.CreateHandler(dynamicOptions.Auth);
                     })
-                    .SetHandlerLifetime(TimeSpan.Zero) // Force handler recreation so Auth changes take effect immediately
+                    .SetHandlerLifetime(TimeSpan.FromSeconds(1)) // Force handler recreation so Auth changes take effect immediately
                     .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
                     // ── ViewModel (transient: una instancia nueva por ventana) ─

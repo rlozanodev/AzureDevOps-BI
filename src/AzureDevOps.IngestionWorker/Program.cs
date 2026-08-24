@@ -65,7 +65,7 @@ try
                 var dynamicOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
                 return NtlmHttpHandlerFactory.CreateHandler(dynamicOptions.Auth);
             })
-            .SetHandlerLifetime(TimeSpan.Zero)
+            .SetHandlerLifetime(TimeSpan.FromSeconds(1))
             .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
             // Main Background Ingestion Orchestrator
