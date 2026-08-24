@@ -11,6 +11,7 @@ using AzureDevOps.IngestionWorker.Services.Database;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace AzureDevOps.DesktopManager;
 
@@ -44,6 +45,16 @@ public partial class App : Application
 
                     // 2. Variables de entorno sobreescriben (ideal para producción / Docker)
                     config.AddEnvironmentVariables();
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.AddSimpleConsole(options => 
+                    {
+                        options.SingleLine = true;
+                        options.TimestampFormat = "[HH:mm:ss] ";
+                    });
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Debug);
                 })
                 .ConfigureServices((hostContext, services) =>
                 {

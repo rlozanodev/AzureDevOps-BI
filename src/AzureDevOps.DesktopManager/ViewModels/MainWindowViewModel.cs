@@ -131,8 +131,8 @@ public class MainWindowViewModel : INotifyPropertyChanged
     }
 
     // UI State for Dashboard
-    private int _currentTab = 0;
-    public int CurrentTab
+    private string _currentTab = "0";
+    public string CurrentTab
     {
         get => _currentTab;
         set { _currentTab = value; OnPropertyChanged(); }
@@ -188,10 +188,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
     public void SetTab(string tabIndexStr)
     {
-        if (int.TryParse(tabIndexStr, out int tabIndex))
-        {
-            CurrentTab = tabIndex;
-        }
+        CurrentTab = tabIndexStr;
     }
 
     public async Task LoadProjectsAsync(CancellationToken ct = default)
