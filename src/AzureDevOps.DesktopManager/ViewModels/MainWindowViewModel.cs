@@ -198,7 +198,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         StatusMessage = "Cargando proyectos desde la base de datos…";
         try
         {
-            var projects = await _catalogRepository.GetEnabledProjectsAsync(ct);
+            var projects = await Task.Run(() => _catalogRepository.GetEnabledProjectsAsync(ct), ct);
             Projects.Clear();
             foreach (var p in projects)
                 Projects.Add(ProjectRowViewModel.FromEntity(p));
@@ -225,11 +225,16 @@ public class MainWindowViewModel : INotifyPropertyChanged
         try
         {
             int saved = 0;
-            foreach (var row in Projects)
+            // Execute all saves on background thread
+            await Task.Run(async () => 
             {
-                await _catalogRepository.MarkProjectAccessStatusAsync(row.ProjectId, row.AccessStatus, ct);
-                saved++;
-            }
+                foreach (var row in Projects)
+                {
+                    await _catalogRepository.MarkProjectAccessStatusAsync(row.ProjectId, row.AccessStatus, ct);
+                    saved++;
+                }
+            }, ct);
+            
             StatusMessage = $"{saved} proyecto(s) actualizados correctamente.";
             _logger.LogInformation("Saved {Count} catalog changes.", saved);
             ShowNotification("Catálogo Guardado", $"{saved} proyectos actualizados.", false);
@@ -251,7 +256,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         try
         {
             using var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            var response = await httpClient.GetAsync(BaseUrl.TrimEnd('/') + "/" + Collection, ct);
+            var response = await Task.Run(() => httpClient.GetAsync(BaseUrl.TrimEnd('/') + "/" + Collection, ct), ct);
             if (response.IsSuccessStatusCode)
             {
                 StatusMessage = $"Conexión exitosa. HTTP {(int)response.StatusCode}.";
