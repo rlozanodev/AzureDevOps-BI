@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AzureDevOps.DesktopManager.ViewModels"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="False"
+             x:Class="AzureDevOps.DesktopManager.Views.Tabs.LogsTab">
+    <Grid RowDefinitions="Auto, *">
+                                <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,20">
+                                    <TextBlock Text="System Logs &amp; Depuración" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
+                                    <TextBlock Text="Registros detallados con soporte para paginación por fecha." Foreground="{DynamicResource SecondaryText}" FontSize="15"/>
+                                    
+                                    <Grid ColumnDefinitions="Auto, *, Auto" Margin="0,16,0,0">
+                                        <Button Grid.Column="0" Content="&lt; Día Anterior" Click="OnPrevLogDateClick" Classes="Secondary"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding CurrentLogDateLabel}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="16"/>
+                                        <Button Grid.Column="2" Content="Día Siguiente &gt;" Click="OnNextLogDateClick" Classes="Secondary"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <Border Grid.Row="1" Background="{DynamicResource LogContainerBg}" CornerRadius="8" Padding="16" BorderBrush="{DynamicResource LogBorderColor}" BorderThickness="1">
+                                    <ScrollViewer>
+                                        <ItemsControl ItemsSource="{Binding CurrentLogs}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="0,0,0,12">
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <TextBlock Text="{Binding CreatedAtUtc, StringFormat='{}{0:HH:mm:ss}'}" Foreground="{DynamicResource LogTime}" FontFamily="Consolas, Monospace" FontSize="13"/>
+                                                            <TextBlock Text="{Binding LogLevel}" FontWeight="Bold" Foreground="{DynamicResource LogLevel}" FontFamily="Consolas, Monospace" FontSize="13"/>
+                                                            <TextBlock Text="{Binding SourceContext}" Foreground="{DynamicResource LogContext}" FontFamily="Consolas, Monospace" FontSize="13"/>
+                                                        </StackPanel>
+                                                        <!-- Selectable text! TextBox is selectable but readonly -->
+                                                        <TextBox Text="{Binding Message}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource LogText}" FontFamily="Consolas, Monospace" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" MinHeight="20"/>
+                                                        <TextBox Text="{Binding Exception}" IsVisible="{Binding Exception, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" IsReadOnly="True" BorderThickness="0" Background="{DynamicResource LogExceptionBg}" Foreground="{DynamicResource LogExceptionText}" FontFamily="Consolas, Monospace" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" MinHeight="20"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+</UserControl>

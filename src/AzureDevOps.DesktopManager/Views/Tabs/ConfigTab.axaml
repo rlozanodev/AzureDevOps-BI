@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AzureDevOps.DesktopManager.ViewModels"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="False"
+             x:Class="AzureDevOps.DesktopManager.Views.Tabs.ConfigTab">
+    <StackPanel Spacing="24">
+                                <TextBlock Text="Configuración TFS / Azure DevOps" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
+                                
+                                <Border Classes="Card" MaxWidth="700" HorizontalAlignment="Left">
+                                    <StackPanel Spacing="20">
+                                        
+                                        <TextBlock Text="Parámetros del Servidor" FontSize="18" FontWeight="Bold"/>
+                                        <Grid ColumnDefinitions="150, *" RowDefinitions="Auto,16,Auto,16,Auto">
+                                            
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Base URL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BaseUrl}" Watermark="http://tfs-server/" Padding="10"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Collection" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Collection}" Watermark="DefaultCollection" Padding="10"/>
+
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="API Version" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ApiVersion}" Watermark="5.0-preview" Padding="10"/>
+                                        </Grid>
+
+                                        <Border Height="1" Background="#E5E7EB" Margin="0,8"/>
+
+                                        <TextBlock Text="Autenticación (Windows NTLM / SSO)" FontSize="18" FontWeight="Bold"/>
+                                        <CheckBox Content="Usar Credenciales del Sistema Actual (SSO)" IsChecked="{Binding UseDefaultCredentials}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                        <Grid ColumnDefinitions="150, *" RowDefinitions="Auto,16,Auto,16,Auto" IsVisible="{Binding !UseDefaultCredentials}">
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Dominio" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AuthDomain}" Watermark="Ej: CORP" Padding="10"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Usuario" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding AuthUsername}" Watermark="usuario_red" Padding="10"/>
+
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Contraseña" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding AuthPassword}" PasswordChar="•" Watermark="Contraseña de red" Padding="10"/>
+                                        </Grid>
+
+                                        <Border Height="1" Background="#E5E7EB" Margin="0,10"/>
+
+                                        <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right">
+                                            <Button Classes="Secondary" Content="Probar Conexión" Click="OnTestTfsConnectionClick" IsEnabled="{Binding !IsBusy}">
+                                                <!-- Icon + Text -->
+                                                <Button.Content>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="🔌" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Probar Conexión" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button.Content>
+                                            </Button>
+                                            <Button Classes="Primary" Content="Guardar Configuración" Click="OnGuardarConfiguracionClick" IsEnabled="{Binding !IsBusy}">
+                                                <Button.Content>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="💾" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Guardar" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button.Content>
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+</UserControl>

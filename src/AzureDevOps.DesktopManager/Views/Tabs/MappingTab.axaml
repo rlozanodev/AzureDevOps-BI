@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AzureDevOps.DesktopManager.ViewModels"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="False"
+             x:Class="AzureDevOps.DesktopManager.Views.Tabs.MappingTab">
+    <Grid RowDefinitions="Auto, *, Auto">
+                                <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,20">
+                                    <TextBlock Text="Catálogo de Proyectos" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
+                                    <TextBlock Text="Selecciona qué proyectos de la colección se van a sincronizar con el Data Warehouse." Foreground="{DynamicResource SecondaryText}" FontSize="15"/>
+                                </StackPanel>
+
+                                <Border Grid.Row="1" Classes="Card" Padding="0">
+                                    <DataGrid Name="ProjectsGrid"
+                                              ItemsSource="{Binding Projects}"
+                                              AutoGenerateColumns="False"
+                                              CanUserReorderColumns="True"
+                                              CanUserResizeColumns="True"
+                                              CanUserSortColumns="True"
+                                              GridLinesVisibility="Horizontal"
+                                              Background="Transparent"
+                                              RowBackground="{DynamicResource CardBackground}"
+                                              
+                                              BorderThickness="0">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Colección" Binding="{Binding CollectionName}" IsReadOnly="True" Width="*" />
+                                            <DataGridTextColumn Header="Proyecto" Binding="{Binding ProjectName}" IsReadOnly="True" Width="*" />
+                                            <DataGridTextColumn Header="Estado de Acceso" Binding="{Binding AccessStatus}" Width="150"/>
+                                            <DataGridCheckBoxColumn Header="Habilitado" Binding="{Binding IsEnabled}" Width="100"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Border>
+
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Spacing="16">
+                                    <Button Classes="Secondary" Content="Recargar Catálogo" Command="{Binding LoadProjectsAsync}"/>
+                                    <Button Classes="Primary" Content="Guardar Cambios" Click="OnGuardarCambiosClick" IsEnabled="{Binding !IsBusy}"/>
+                                </StackPanel>
+                            </Grid>
+</UserControl>

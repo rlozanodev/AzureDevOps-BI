@@ -310,6 +310,35 @@ public class MainWindowViewModel : INotifyPropertyChanged
         finally { IsBusy = false; }
     }
 
+    public async Task LoadConfigurationAsync()
+    {
+        try
+        {
+            var configJson = await Task.Run(() => _configurationRepository.GetConfigurationAsync("SystemConfig"));
+            if (!string.IsNullOrWhiteSpace(configJson))
+            {
+                var config = System.Text.Json.JsonSerializer.Deserialize<AzureDevOps.Core.Configuration.AzureDevOpsOptions>(configJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (config != null)
+                {
+                    if (!string.IsNullOrEmpty(config.BaseUrl)) BaseUrl = config.BaseUrl;
+                    if (!string.IsNullOrEmpty(config.Collection)) Collection = config.Collection;
+                    if (!string.IsNullOrEmpty(config.ApiVersion)) ApiVersion = config.ApiVersion;
+                    if (config.Auth != null)
+                    {
+                        UseDefaultCredentials = config.Auth.UseDefaultCredentials;
+                        AuthDomain = config.Auth.Domain ?? "";
+                        AuthUsername = config.Auth.Username ?? "";
+                        AuthPassword = config.Auth.Password ?? "";
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load configuration from DB on startup.");
+        }
+    }
+
     public async Task SaveConfigurationAsync(CancellationToken ct = default)
     {
         if (IsBusy) return;

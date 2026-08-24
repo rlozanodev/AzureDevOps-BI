@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AzureDevOps.DesktopManager.Views.MainWindow"
+        xmlns:tabs="using:AzureDevOps.DesktopManager.Views.Tabs"
         x:CompileBindings="False"
         Title="Azure DevOps BI Manager" Width="1100" Height="750"
         WindowStartupLocation="CenterScreen"
@@ -43,9 +44,9 @@
 
         <!-- Card Style -->
         <Style Selector="Border.Card">
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
             <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="24"/>
             <Setter Property="BoxShadow" Value="0 4 6 0 #0A000000"/>
@@ -53,8 +54,8 @@
         
         <!-- Primary Button -->
         <Style Selector="Button.Primary">
-            <Setter Property="Background" Value="#4F46E5"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonPrimaryBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonPrimaryText}"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -66,7 +67,7 @@
         <!-- Secondary Button -->
         <Style Selector="Button.Secondary">
             <Setter Property="Background" Value="#F3F4F6"/>
-            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonSecondaryText}"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -83,41 +84,47 @@
         </Grid.RowDefinitions>
 
         <!-- ================================= HEADER ================================= -->
-        <Border Grid.Row="0" Background="White" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="{DynamicResource CardBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="Auto, *, Auto" Margin="24,0">
                 <!-- App Logo & Title -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                    <Border Background="#4F46E5" CornerRadius="8" Width="40" Height="40">
-                        <TextBlock Text="AD" Foreground="White" FontWeight="Bold" FontSize="18" 
+                    <Border Background="{DynamicResource ButtonPrimaryBg}" CornerRadius="8" Width="40" Height="40">
+                        <TextBlock Text="AD" Foreground="{DynamicResource ButtonPrimaryText}" FontWeight="Bold" FontSize="18" 
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Azure DevOps BI" FontWeight="Bold" FontSize="18" Foreground="#111827"/>
-                        <TextBlock Text="Ingestion Manager" FontSize="12" Foreground="#6B7280"/>
+                        <TextBlock Text="Azure DevOps BI" FontWeight="Bold" FontSize="18" Foreground="{DynamicResource PrimaryText}"/>
+                        <TextBlock Text="Ingestion Manager" FontSize="12" Foreground="{DynamicResource SecondaryText}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Profile Bubble (Windows Identity) -->
-                    <Button Grid.Column="2" Background="Transparent" BorderThickness="0" CornerRadius="20" Padding="0" HorizontalAlignment="Right" Cursor="Hand">
+                    
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- Theme Toggle -->
+                    <Button Click="OnToggleThemeClick" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="8">
+                        <TextBlock Text="🌓" FontSize="20" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button Background="Transparent" BorderThickness="0" CornerRadius="20" Padding="0" HorizontalAlignment="Right" Cursor="Hand">
                         <Button.Flyout>
                             <Flyout Placement="BottomEdgeAlignedRight">
                                 <StackPanel Spacing="16" Width="280">
                                     <TextBlock Text="Identidad de Autenticación" FontWeight="Bold" FontSize="16"/>
-                                    <Border Background="#F3F4F6" CornerRadius="8" Padding="12">
+                                    <Border Background="{DynamicResource AppBackground}" CornerRadius="8" Padding="12">
                                         <StackPanel Spacing="8">
-                                            <TextBlock Text="Usuario de Windows Actual:" Foreground="#6B7280" FontSize="12"/>
+                                            <TextBlock Text="Usuario de Windows Actual:" Foreground="{DynamicResource SecondaryText}" FontSize="12"/>
                                             <TextBlock Text="{Binding MachineUserName, FallbackValue='Desconocido'}" FontWeight="SemiBold" FontSize="14"/>
                                             
                                             <Border Height="1" Background="#E5E7EB" Margin="0,4"/>
                                             
-                                            <TextBlock Text="Modo de Autenticación TFS:" Foreground="#6B7280" FontSize="12"/>
+                                            <TextBlock Text="Modo de Autenticación TFS:" Foreground="{DynamicResource SecondaryText}" FontSize="12"/>
                                             <TextBlock Text="{Binding UseDefaultCredentials, Converter={x:Static StringConverters.IsNullOrEmpty}, FallbackValue='SSO (Windows Authentication)'}" FontWeight="SemiBold" FontSize="14" IsVisible="{Binding UseDefaultCredentials}"/>
                                             <TextBlock Text="Credenciales Explícitas (NTLM)" FontWeight="SemiBold" FontSize="14" IsVisible="{Binding !UseDefaultCredentials}"/>
                                             
                                             <StackPanel IsVisible="{Binding !UseDefaultCredentials}" Margin="0,8,0,0" Spacing="4">
-                                                <TextBlock Text="Dominio configurado:" Foreground="#6B7280" FontSize="12"/>
+                                                <TextBlock Text="Dominio configurado:" Foreground="{DynamicResource SecondaryText}" FontSize="12"/>
                                                 <TextBlock Text="{Binding AuthDomain, FallbackValue='(Ninguno)'}" FontWeight="SemiBold" FontSize="13"/>
-                                                <TextBlock Text="Usuario configurado:" Foreground="#6B7280" FontSize="12"/>
+                                                <TextBlock Text="Usuario configurado:" Foreground="{DynamicResource SecondaryText}" FontSize="12"/>
                                                 <TextBlock Text="{Binding AuthUsername, FallbackValue='(Ninguno)'}" FontWeight="SemiBold" FontSize="13"/>
                                             </StackPanel>
                                         </StackPanel>
@@ -127,14 +134,15 @@
                                 </StackPanel>
                             </Flyout>
                         </Button.Flyout>
-                        <Border Background="#F3F4F6" CornerRadius="20" Padding="12,6">
+                        <Border Background="{DynamicResource AppBackground}" CornerRadius="20" Padding="12,6">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <TextBlock Text="👤" FontSize="18" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding MachineUserName}" FontWeight="SemiBold" FontSize="14" Foreground="#374151" VerticalAlignment="Center"/>
-                                <TextBlock Text="▼" FontSize="10" Foreground="#9CA3AF" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                <TextBlock Text="{Binding MachineUserName}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource PrimaryText}" VerticalAlignment="Center"/>
+                                <TextBlock Text="▼" FontSize="10" Foreground="{DynamicResource SecondaryText}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                             </StackPanel>
                         </Border>
                     </Button>
+                            </StackPanel>
             </Grid>
         </Border>
 
@@ -142,9 +150,9 @@
         <Grid Grid.Row="1" ColumnDefinitions="250, *">
             
             <!-- Sidebar Navigation -->
-            <Border Grid.Column="0" Background="White" BorderBrush="#E5E7EB" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Background="{DynamicResource CardBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,1,0">
                 <StackPanel Margin="0,16">
-                    <TextBlock Text="MENÚ PRINCIPAL" FontSize="11" FontWeight="Bold" Foreground="#9CA3AF" Margin="24,8,24,8" />
+                    <TextBlock Text="MENÚ PRINCIPAL" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SecondaryText}" Margin="24,8,24,8" />
                     
                     <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}"
                                  Click="OnNavTabClick" CommandParameter="0">
@@ -185,190 +193,25 @@
                 <ContentControl>
                     <!-- Instead of full ContentControl binding, we can use a Carousel or Grid with IsVisible based on CurrentTab -->
                     <Grid>
-                        <!-- TAB 0: DASHBOARD -->
-                        <Grid IsVisible="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}">
-                            <StackPanel Spacing="24">
-                                <TextBlock Text="Visión General" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
-                                
-                                <!-- Cards Row -->
-                                <Grid ColumnDefinitions="*, 24, *" Height="140">
-                                    <Border Classes="Card" Grid.Column="0">
-                                        <StackPanel Spacing="8">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="🟢" FontSize="16"/>
-                                                <TextBlock Text="Estado del Sistema" FontSize="14" FontWeight="SemiBold" Foreground="#6B7280"/>
-                                            </StackPanel>
-                                            <TextBlock Text="En Ejecución" FontSize="24" FontWeight="Bold" Foreground="#111827" Margin="0,8,0,0"/>
-                                            <TextBlock Text="El worker está sincronizando datos." FontSize="14" Foreground="#6B7280"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Classes="Card" Grid.Column="2">
-                                        <StackPanel Spacing="8">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="📦" FontSize="16"/>
-                                                <TextBlock Text="Proyectos Activos" FontSize="14" FontWeight="SemiBold" Foreground="#6B7280"/>
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding Projects.Count}" FontSize="24" FontWeight="Bold" Foreground="#111827" Margin="0,8,0,0"/>
-                                            <TextBlock Text="Proyectos en el catálogo de BD." FontSize="14" Foreground="#6B7280"/>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-
-                                <!-- Details Card -->
-                                <Border Classes="Card">
-                                    <StackPanel Spacing="16">
-                                        <TextBlock Text="Información de Depuración" FontSize="18" FontWeight="Bold"/>
-                                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="150, *">
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Conexión BD:" Foreground="#6B7280" Margin="0,4"/>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding IsDbConnected, StringFormat='{}{0}'}" FontWeight="SemiBold" Margin="0,4"/>
-                                            
-                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Identity Name:" Foreground="#6B7280" Margin="0,4"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MachineUserName, FallbackValue='(Vacio)'}" FontWeight="SemiBold" Margin="0,4"/>
-
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Host OS:" Foreground="#6B7280" Margin="0,4"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OSVersion, FallbackValue='(Vacio)'}" FontWeight="SemiBold" Margin="0,4"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
+                                                <!-- TAB 0: DASHBOARD -->
+                        <Grid IsVisible="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}">
+                            <tabs:DashboardTab />
                         </Grid>
 
                         <!-- TAB 1: CATALOGO -->
-                        <Grid IsVisible="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}">
-                            <Grid RowDefinitions="Auto, *, Auto">
-                                <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,20">
-                                    <TextBlock Text="Catálogo de Proyectos" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
-                                    <TextBlock Text="Selecciona qué proyectos de la colección se van a sincronizar con el Data Warehouse." Foreground="#6B7280" FontSize="15"/>
-                                </StackPanel>
-
-                                <Border Grid.Row="1" Classes="Card" Padding="0">
-                                    <DataGrid Name="ProjectsGrid"
-                                              ItemsSource="{Binding Projects}"
-                                              AutoGenerateColumns="False"
-                                              CanUserReorderColumns="True"
-                                              CanUserResizeColumns="True"
-                                              CanUserSortColumns="True"
-                                              GridLinesVisibility="Horizontal"
-                                              Background="Transparent"
-                                              RowBackground="White"
-                                              
-                                              BorderThickness="0">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="Colección" Binding="{Binding CollectionName}" IsReadOnly="True" Width="*" />
-                                            <DataGridTextColumn Header="Proyecto" Binding="{Binding ProjectName}" IsReadOnly="True" Width="*" />
-                                            <DataGridTextColumn Header="Estado de Acceso" Binding="{Binding AccessStatus}" Width="150"/>
-                                            <DataGridCheckBoxColumn Header="Habilitado" Binding="{Binding IsEnabled}" Width="100"/>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </Border>
-
-                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Spacing="16">
-                                    <Button Classes="Secondary" Content="Recargar Catálogo" Command="{Binding LoadProjectsAsync}"/>
-                                    <Button Classes="Primary" Content="Guardar Cambios" Click="OnGuardarCambiosClick" IsEnabled="{Binding !IsBusy}"/>
-                                </StackPanel>
-                            </Grid>
+                        <Grid IsVisible="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}">
+                            <tabs:MappingTab />
                         </Grid>
 
                         <!-- TAB 2: CONFIGURACION -->
                         <Grid IsVisible="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}">
-                            <StackPanel Spacing="24">
-                                <TextBlock Text="Configuración TFS / Azure DevOps" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
-                                
-                                <Border Classes="Card" MaxWidth="700" HorizontalAlignment="Left">
-                                    <StackPanel Spacing="20">
-                                        
-                                        <TextBlock Text="Parámetros del Servidor" FontSize="18" FontWeight="Bold"/>
-                                        <Grid ColumnDefinitions="150, *" RowDefinitions="Auto,16,Auto,16,Auto">
-                                            
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Base URL" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BaseUrl}" Watermark="http://tfs-server/" Padding="10"/>
-
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Collection" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Collection}" Watermark="DefaultCollection" Padding="10"/>
-
-                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="API Version" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ApiVersion}" Watermark="5.0-preview" Padding="10"/>
-                                        </Grid>
-
-                                        <Border Height="1" Background="#E5E7EB" Margin="0,8"/>
-
-                                        <TextBlock Text="Autenticación (Windows NTLM / SSO)" FontSize="18" FontWeight="Bold"/>
-                                        <CheckBox Content="Usar Credenciales del Sistema Actual (SSO)" IsChecked="{Binding UseDefaultCredentials}" FontWeight="SemiBold" Margin="0,0,0,8"/>
-
-                                        <Grid ColumnDefinitions="150, *" RowDefinitions="Auto,16,Auto,16,Auto" IsVisible="{Binding !UseDefaultCredentials}">
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Dominio" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AuthDomain}" Watermark="Ej: CORP" Padding="10"/>
-
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Usuario" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding AuthUsername}" Watermark="usuario_red" Padding="10"/>
-
-                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Contraseña" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding AuthPassword}" PasswordChar="•" Watermark="Contraseña de red" Padding="10"/>
-                                        </Grid>
-
-                                        <Border Height="1" Background="#E5E7EB" Margin="0,10"/>
-
-                                        <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right">
-                                            <Button Classes="Secondary" Content="Probar Conexión" Click="OnTestTfsConnectionClick" IsEnabled="{Binding !IsBusy}">
-                                                <!-- Icon + Text -->
-                                                <Button.Content>
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <TextBlock Text="🔌" VerticalAlignment="Center"/>
-                                                        <TextBlock Text="Probar Conexión" VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </Button.Content>
-                                            </Button>
-                                            <Button Classes="Primary" Content="Guardar Configuración" Click="OnGuardarConfiguracionClick" IsEnabled="{Binding !IsBusy}">
-                                                <Button.Content>
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <TextBlock Text="💾" VerticalAlignment="Center"/>
-                                                        <TextBlock Text="Guardar" VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </Button.Content>
-                                            </Button>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
+                            <tabs:ConfigTab />
                         </Grid>
 
                         <!-- TAB 3: LOGS -->
                         <Grid IsVisible="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}">
-                            <Grid RowDefinitions="Auto, *">
-                                <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,20">
-                                    <TextBlock Text="System Logs &amp; Depuración" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
-                                    <TextBlock Text="Registros detallados con soporte para paginación por fecha." Foreground="#6B7280" FontSize="15"/>
-                                    
-                                    <Grid ColumnDefinitions="Auto, *, Auto" Margin="0,16,0,0">
-                                        <Button Grid.Column="0" Content="&lt; Día Anterior" Click="OnPrevLogDateClick" Classes="Secondary"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding CurrentLogDateLabel}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="16"/>
-                                        <Button Grid.Column="2" Content="Día Siguiente &gt;" Click="OnNextLogDateClick" Classes="Secondary"/>
-                                    </Grid>
-                                </StackPanel>
-
-                                <Border Grid.Row="1" Background="#1E1E1E" CornerRadius="8" Padding="16" BorderBrush="#333333" BorderThickness="1">
-                                    <ScrollViewer>
-                                        <ItemsControl ItemsSource="{Binding CurrentLogs}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Margin="0,0,0,12">
-                                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                                            <TextBlock Text="{Binding CreatedAtUtc, StringFormat='{}{0:HH:mm:ss}'}" Foreground="#A6E22E" FontFamily="Consolas, Monospace" FontSize="13"/>
-                                                            <TextBlock Text="{Binding LogLevel}" FontWeight="Bold" Foreground="#66D9EF" FontFamily="Consolas, Monospace" FontSize="13"/>
-                                                            <TextBlock Text="{Binding SourceContext}" Foreground="#75715E" FontFamily="Consolas, Monospace" FontSize="13"/>
-                                                        </StackPanel>
-                                                        <!-- Selectable text! TextBox is selectable but readonly -->
-                                                        <TextBox Text="{Binding Message}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#F8F8F2" FontFamily="Consolas, Monospace" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" MinHeight="20"/>
-                                                        <TextBox Text="{Binding Exception}" IsVisible="{Binding Exception, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" IsReadOnly="True" BorderThickness="0" Background="#3E1A1A" Foreground="#F92672" FontFamily="Consolas, Monospace" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" MinHeight="20"/>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
-                                </Border>
-                            </Grid>
+                            <tabs:LogsTab />
                         </Grid>
-
                     </Grid>
                 </ContentControl>
             </Grid>
@@ -379,7 +222,7 @@
                 IsVisible="{Binding IsNotificationVisible}"
                 HorizontalAlignment="Right" VerticalAlignment="Top" 
                 Margin="32,90,32,0" 
-                Background="White" 
+                Background="{DynamicResource CardBackground}" 
                 CornerRadius="8" 
                 Padding="16" 
                 BoxShadow="0 10 15 -3 #1A000000, 0 4 6 -2 #0D000000"
@@ -395,8 +238,8 @@
                            FontSize="24" VerticalAlignment="Center"/>
                            
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{Binding NotificationTitle}" FontWeight="Bold" FontSize="15" Foreground="#111827"/>
-                    <TextBlock Text="{Binding NotificationMessage}" FontSize="13" Foreground="#6B7280" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding NotificationTitle}" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource PrimaryText}"/>
+                    <TextBlock Text="{Binding NotificationMessage}" FontSize="13" Foreground="{DynamicResource SecondaryText}" TextWrapping="Wrap"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -407,7 +250,7 @@
                 IsHitTestVisible="False"
                 HorizontalAlignment="Center" VerticalAlignment="Top" 
                 Margin="0,16,0,0" 
-                Background="#EEF2FF" 
+                Background="{DynamicResource CardBackground}" 
                 CornerRadius="16" 
                 Padding="16,8" 
                 BoxShadow="0 4 6 0 #1A000000">

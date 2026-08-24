@@ -19,37 +19,44 @@ public partial class MainWindow : Window
         DataContext = _vm;
 
         // Load catalog projects as soon as the window opens
-        Opened += async (_, _) => await _vm.LoadProjectsAsync();
+        Opened += async (_, _) => 
+        {
+            await _vm.LoadConfigurationAsync();
+            await _vm.LoadProjectsAsync();
+        };
     }
 
     // ─── Navegación ───────────────────────────────────────────────────────────
     
-    private void OnNavTabClick(object? sender, RoutedEventArgs e)
+    private async void OnNavTabClick(object? sender, RoutedEventArgs e)
     {
         if (sender is RadioButton rb && rb.CommandParameter is string tab)
         {
             _vm.CurrentTab = tab;
             Console.WriteLine($"[DEBUG] Changed tab to {tab}");
+            
+            if (tab == "3")
+            {
+                await _vm.LoadAvailableLogDatesAsync();
+            }
         }
     }
 
-    // ─── Catálogo ─────────────────────────────────────────────────────────────
 
-    private async void OnGuardarCambiosClick(object? sender, RoutedEventArgs e)
-        => await _vm.SaveCatalogChangesAsync();
-
-    // ─── Configuración ────────────────────────────────────────────────────────
-
-    private async void OnTestTfsConnectionClick(object? sender, RoutedEventArgs e)
-        => await _vm.TestTfsConnectionAsync();
-
-    private async void OnGuardarConfiguracionClick(object? sender, RoutedEventArgs e)
-        => await _vm.SaveConfigurationAsync();
-
-    // ─── Logs ─────────────────────────────────────────────────────────────────
-    private async void OnPrevLogDateClick(object? sender, RoutedEventArgs e)
-        => await _vm.PrevLogDateAsync();
-
-    private async void OnNextLogDateClick(object? sender, RoutedEventArgs e)
-        => await _vm.NextLogDateAsync();
+    // ─── Tema ─────────────────────────────────────────────────────────────────
+    private void OnToggleThemeClick(object? sender, RoutedEventArgs e)
+    {
+        var app = App.Current;
+        if (app is not null)
+        {
+            if (app.RequestedThemeVariant == Avalonia.Styling.ThemeVariant.Light)
+            {
+                app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+            }
+            else
+            {
+                app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
+            }
+        }
+    }
 }

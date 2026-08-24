@@ -1,8 +1,70 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="AzureDevOps.DesktopManager.App"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Light">
     <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+    
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackground">#F9FAFB</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarBackground">#1F2937</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarText">#D1D5DB</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarTextActive">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarTextHover">#E5E7EB</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarHighlight">#374151</SolidColorBrush>
+                    <SolidColorBrush x:Key="HeaderBackground">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="CardBackground">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="PrimaryText">#111827</SolidColorBrush>
+                    <SolidColorBrush x:Key="SecondaryText">#6B7280</SolidColorBrush>
+                    <SolidColorBrush x:Key="BorderColor">#E5E7EB</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonPrimaryBg">#4F46E5</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonPrimaryText">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonSecondaryBg">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonSecondaryText">#374151</SolidColorBrush>
+                    <SolidColorBrush x:Key="LoadingOverlayBg">#80FFFFFF</SolidColorBrush>
+                    <!-- Logs specific colors -->
+                    <SolidColorBrush x:Key="LogContainerBg">#1E1E1E</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogBorderColor">#333333</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogText">#F8F8F2</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogTime">#A6E22E</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogLevel">#66D9EF</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogContext">#75715E</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogExceptionBg">#3E1A1A</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogExceptionText">#F92672</SolidColorBrush>
+                </ResourceDictionary>
+                
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackground">#111827</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarBackground">#030712</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarText">#9CA3AF</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarTextActive">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarTextHover">#D1D5DB</SolidColorBrush>
+                    <SolidColorBrush x:Key="SidebarHighlight">#1F2937</SolidColorBrush>
+                    <SolidColorBrush x:Key="HeaderBackground">#1F2937</SolidColorBrush>
+                    <SolidColorBrush x:Key="CardBackground">#1F2937</SolidColorBrush>
+                    <SolidColorBrush x:Key="PrimaryText">#F9FAFB</SolidColorBrush>
+                    <SolidColorBrush x:Key="SecondaryText">#9CA3AF</SolidColorBrush>
+                    <SolidColorBrush x:Key="BorderColor">#374151</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonPrimaryBg">#4F46E5</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonPrimaryText">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonSecondaryBg">#374151</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonSecondaryText">#F9FAFB</SolidColorBrush>
+                    <SolidColorBrush x:Key="LoadingOverlayBg">#80000000</SolidColorBrush>
+                    <!-- Logs specific colors (can be same or tweaked) -->
+                    <SolidColorBrush x:Key="LogContainerBg">#000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogBorderColor">#1F2937</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogText">#F8F8F2</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogTime">#A6E22E</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogLevel">#66D9EF</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogContext">#75715E</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogExceptionBg">#3E1A1A</SolidColorBrush>
+                    <SolidColorBrush x:Key="LogExceptionText">#F92672</SolidColorBrush>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
