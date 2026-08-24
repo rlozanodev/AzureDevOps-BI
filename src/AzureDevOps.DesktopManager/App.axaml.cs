@@ -1,8 +1,14 @@
 using System;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using AzureDevOps.Core.Configuration;
+using AzureDevOps.Core.Interfaces;
+using AzureDevOps.DesktopManager.ViewModels;
+using AzureDevOps.IngestionWorker.Services.Database;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -21,25 +27,49 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Build the Host (Embedding the Worker)
+            // Buscar el appsettings.json del Worker (hermano en el árbol de directorios)
+            var workerSettingsPath = Path.Combine(
+                AppContext.BaseDirectory,
+                "..", "..", "..", "..", // salir de bin/Debug/net9.0
+                "AzureDevOps.IngestionWorker",
+                "appsettings.json");
+
             AppHost = Host.CreateDefaultBuilder()
+                .ConfigureAppConfiguration((_, config) =>
+                {
+                    // 1. appsettings.json del Worker como fuente base
+                    var resolvedPath = Path.GetFullPath(workerSettingsPath);
+                    if (File.Exists(resolvedPath))
+                        config.AddJsonFile(resolvedPath, optional: false, reloadOnChange: false);
+
+                    // 2. Variables de entorno sobreescriben (ideal para producción / Docker)
+                    config.AddEnvironmentVariables();
+                })
                 .ConfigureServices((hostContext, services) =>
                 {
                     var config = hostContext.Configuration;
-                    services.Configure<AzureDevOps.Core.Configuration.DatabaseOptions>(config.GetSection(AzureDevOps.Core.Configuration.DatabaseOptions.SectionName));
-                    services.AddSingleton<AzureDevOps.Core.Interfaces.IConfigurationRepository, AzureDevOps.IngestionWorker.Services.Database.ConfigurationRepository>();
-                    
-                    // Here we will register everything needed. 
+
+                    // ── Opciones ─────────────────────────────────────────────
+                    services.Configure<DatabaseOptions>(config.GetSection(DatabaseOptions.SectionName));
+                    services.Configure<AzureDevOpsOptions>(config.GetSection(AzureDevOpsOptions.SectionName));
+
+                    // ── Repositorios ─────────────────────────────────────────
+                    services.AddSingleton<ICatalogRepository, CatalogRepository>();
+                    services.AddSingleton<IConfigurationRepository, ConfigurationRepository>();
+
+                    // ── ViewModel (transient: una instancia nueva por ventana) ─
+                    services.AddTransient<MainWindowViewModel>();
+
+                    // ── Servicio de sincronización de configuración ───────────
                     services.AddHostedService<Services.ConfigurationSyncService>();
-                    // Normally we would share the IServiceCollection with the IngestionWorker setup here.
                 })
                 .Build();
 
             AppHost.Start();
 
             desktop.MainWindow = new Views.MainWindow();
-            
-            // Cancel closing to minimize to tray
+
+            // Minimizar al tray al cerrar la X
             desktop.MainWindow.Closing += (s, e) =>
             {
                 e.Cancel = true;
@@ -61,17 +91,16 @@ public partial class App : Application
 
     private void ForceSync_Click(object? sender, EventArgs e)
     {
-        // TO DO: Trigger sync manually
+        // TO DO: Trigger sync manually via IConfigurationRepository
     }
 
     private void Exit_Click(object? sender, EventArgs e)
     {
         AppHost?.StopAsync().Wait();
         AppHost?.Dispose();
-        
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Detach event to allow closing
             if (desktop.MainWindow != null)
             {
                 desktop.MainWindow.Closing -= (s, ev) => { ev.Cancel = true; desktop.MainWindow.Hide(); };
@@ -80,3 +109,4 @@ public partial class App : Application
         }
     }
 }
+

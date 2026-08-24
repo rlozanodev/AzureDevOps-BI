@@ -2,76 +2,366 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AzureDevOps.DesktopManager.Views.MainWindow"
         x:CompileBindings="False"
-        Title="Azure DevOps BI Manager" Width="800" Height="600"
-        WindowStartupLocation="CenterScreen">
-    <TabControl>
-        <!-- Dashboard -->
-        <TabItem Header="Dashboard">
-            <StackPanel Margin="20" Spacing="20">
-                <TextBlock Text="Azure DevOps BI Sync Status" FontSize="24" FontWeight="Bold" />
-                
-                <Border Background="#F0F0F0" CornerRadius="8" Padding="20">
-                    <StackPanel Spacing="10">
-                        <TextBlock Text="Sistema de Ingesta: En Ejecución" FontSize="16" />
-                        <TextBlock Text="Última Ejecución: Hace 5 min" FontSize="14" Foreground="Gray" />
-                        
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <!-- Semáforos visuales (Placeholder) -->
-                            <Ellipse Width="16" Height="16" Fill="Green" />
-                            <TextBlock Text="Base de Datos Conectada" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Ellipse Width="16" Height="16" Fill="Green" />
-                            <TextBlock Text="Azure DevOps API Conectado" />
-                        </StackPanel>
+        Title="Azure DevOps BI Manager" Width="1100" Height="750"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F7FA"
+        FontFamily="Inter, Segoe UI, sans-serif">
+
+    <Window.Styles>
+        <!-- Sidebar Navigation Button Style -->
+        <Style Selector="RadioButton.NavButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#4B5563"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="8,4"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" 
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="RadioButton.NavButton:pointerover">
+            <Setter Property="Background" Value="#E5E7EB"/>
+            <Setter Property="Foreground" Value="#111827"/>
+        </Style>
+        <Style Selector="RadioButton.NavButton:checked">
+            <Setter Property="Background" Value="#EEF2FF"/>
+            <Setter Property="Foreground" Value="#4F46E5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- Card Style -->
+        <Style Selector="Border.Card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="BoxShadow" Value="0 4 6 0 #0A000000"/>
+        </Style>
+        
+        <!-- Primary Button -->
+        <Style Selector="Button.Primary">
+            <Setter Property="Background" Value="#4F46E5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.Primary:pointerover">
+            <Setter Property="Background" Value="#4338CA"/>
+        </Style>
+
+        <!-- Secondary Button -->
+        <Style Selector="Button.Secondary">
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.Secondary:pointerover">
+            <Setter Property="Background" Value="#E5E7EB"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70" /> <!-- Header -->
+            <RowDefinition Height="*" />  <!-- Main Area -->
+        </Grid.RowDefinitions>
+
+        <!-- ================================= HEADER ================================= -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto, *, Auto" Margin="24,0">
+                <!-- App Logo & Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Border Background="#4F46E5" CornerRadius="8" Width="40" Height="40">
+                        <TextBlock Text="AD" Foreground="White" FontWeight="Bold" FontSize="18" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Azure DevOps BI" FontWeight="Bold" FontSize="18" Foreground="#111827"/>
+                        <TextBlock Text="Ingestion Manager" FontSize="12" Foreground="#6B7280"/>
                     </StackPanel>
+                </StackPanel>
+
+                <!-- Profile Bubble (Windows Identity) -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <TextBlock Text="Identidad Local" FontSize="11" Foreground="#6B7280" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{Binding MachineUserName}" FontWeight="SemiBold" FontSize="14" Foreground="#374151" HorizontalAlignment="Right"/>
+                    </StackPanel>
+                    <Border Width="40" Height="40" CornerRadius="20" Background="#EEF2FF" BorderBrush="#C7D2FE" BorderThickness="2">
+                        <TextBlock Text="👤" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ================================= BODY ================================= -->
+        <Grid Grid.Row="1" ColumnDefinitions="250, *">
+            
+            <!-- Sidebar Navigation -->
+            <Border Grid.Column="0" Background="White" BorderBrush="#E5E7EB" BorderThickness="0,0,1,0">
+                <StackPanel Margin="0,16">
+                    <TextBlock Text="MENÚ PRINCIPAL" FontSize="11" FontWeight="Bold" Foreground="#9CA3AF" Margin="24,8,24,8" />
+                    
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}"
+                                 Command="{Binding SetTab}" CommandParameter="0">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="📊" FontSize="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Dashboard" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+                    
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
+                                 Command="{Binding SetTab}" CommandParameter="1">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="📂" FontSize="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Catálogo de Proyectos" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
+                                 Command="{Binding SetTab}" CommandParameter="2">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="⚙️" FontSize="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Configuración TFS" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+                    
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
+                                 Command="{Binding SetTab}" CommandParameter="3">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="📝" FontSize="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Live Logs &amp; Debug" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+            </Border>
+
+            <!-- Main Content Area -->
+            <Grid Grid.Column="1" Margin="32">
+                <ContentControl>
+                    <!-- Instead of full ContentControl binding, we can use a Carousel or Grid with IsVisible based on CurrentTab -->
+                    <Grid>
+                        <!-- TAB 0: DASHBOARD -->
+                        <Grid IsVisible="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=0}">
+                            <StackPanel Spacing="24">
+                                <TextBlock Text="Visión General" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
+                                
+                                <!-- Cards Row -->
+                                <Grid ColumnDefinitions="*, 24, *" Height="140">
+                                    <Border Classes="Card" Grid.Column="0">
+                                        <StackPanel Spacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="🟢" FontSize="16"/>
+                                                <TextBlock Text="Estado del Sistema" FontSize="14" FontWeight="SemiBold" Foreground="#6B7280"/>
+                                            </StackPanel>
+                                            <TextBlock Text="En Ejecución" FontSize="24" FontWeight="Bold" Foreground="#111827" Margin="0,8,0,0"/>
+                                            <TextBlock Text="El worker está sincronizando datos." FontSize="14" Foreground="#6B7280"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Classes="Card" Grid.Column="2">
+                                        <StackPanel Spacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="📦" FontSize="16"/>
+                                                <TextBlock Text="Proyectos Activos" FontSize="14" FontWeight="SemiBold" Foreground="#6B7280"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Projects.Count}" FontSize="24" FontWeight="Bold" Foreground="#111827" Margin="0,8,0,0"/>
+                                            <TextBlock Text="Proyectos en el catálogo de BD." FontSize="14" Foreground="#6B7280"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Details Card -->
+                                <Border Classes="Card">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Información de Depuración" FontSize="18" FontWeight="Bold"/>
+                                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="150, *">
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Conexión BD:" Foreground="#6B7280" Margin="0,4"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding IsDbConnected}" FontWeight="SemiBold" Margin="0,4"/>
+                                            
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Identity Name:" Foreground="#6B7280" Margin="0,4"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MachineUserName}" FontWeight="SemiBold" Margin="0,4"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Host OS:" Foreground="#6B7280" Margin="0,4"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OSVersion}" FontWeight="SemiBold" Margin="0,4"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- TAB 1: CATALOGO -->
+                        <Grid IsVisible="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}">
+                            <Grid RowDefinitions="Auto, *, Auto">
+                                <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,20">
+                                    <TextBlock Text="Catálogo de Proyectos" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
+                                    <TextBlock Text="Selecciona qué proyectos de la colección se van a sincronizar con el Data Warehouse." Foreground="#6B7280" FontSize="15"/>
+                                </StackPanel>
+
+                                <Border Grid.Row="1" Classes="Card" Padding="0">
+                                    <DataGrid Name="ProjectsGrid"
+                                              ItemsSource="{Binding Projects}"
+                                              AutoGenerateColumns="False"
+                                              CanUserReorderColumns="True"
+                                              CanUserResizeColumns="True"
+                                              CanUserSortColumns="True"
+                                              GridLinesVisibility="Horizontal"
+                                              Background="Transparent"
+                                              RowBackground="White"
+                                              
+                                              BorderThickness="0">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Colección" Binding="{Binding CollectionName}" IsReadOnly="True" Width="*" />
+                                            <DataGridTextColumn Header="Proyecto" Binding="{Binding ProjectName}" IsReadOnly="True" Width="*" />
+                                            <DataGridTextColumn Header="Estado de Acceso" Binding="{Binding AccessStatus}" Width="150"/>
+                                            <DataGridCheckBoxColumn Header="Habilitado" Binding="{Binding IsEnabled}" Width="100"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Border>
+
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Spacing="16">
+                                    <Button Classes="Secondary" Content="Recargar Catálogo" Command="{Binding LoadProjectsAsync}"/>
+                                    <Button Classes="Primary" Content="Guardar Cambios" Click="OnGuardarCambiosClick" IsEnabled="{Binding !IsBusy}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- TAB 2: CONFIGURACION -->
+                        <Grid IsVisible="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}">
+                            <StackPanel Spacing="24">
+                                <TextBlock Text="Configuración TFS / Azure DevOps" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
+                                
+                                <Border Classes="Card" MaxWidth="700" HorizontalAlignment="Left">
+                                    <StackPanel Spacing="20">
+                                        
+                                        <Grid ColumnDefinitions="150, *" RowDefinitions="Auto,16,Auto,16,Auto,16,Auto">
+                                            
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Base URL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BaseUrl}" Watermark="http://tfs-server/" Padding="10"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Collection" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Collection}" Watermark="DefaultCollection" Padding="10"/>
+
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="API Version" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ApiVersion}" Watermark="5.0-preview" Padding="10"/>
+
+                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="PAT (Token)" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Token}" PasswordChar="•" Watermark="Opcional si usa SSO" Padding="10"/>
+                                        </Grid>
+
+                                        <Border Height="1" Background="#E5E7EB" Margin="0,10"/>
+
+                                        <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right">
+                                            <Button Classes="Secondary" Content="Probar Conexión" Click="OnTestTfsConnectionClick" IsEnabled="{Binding !IsBusy}">
+                                                <!-- Icon + Text -->
+                                                <Button.Content>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="🔌" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Probar Conexión" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button.Content>
+                                            </Button>
+                                            <Button Classes="Primary" Content="Guardar Configuración" Click="OnGuardarConfiguracionClick" IsEnabled="{Binding !IsBusy}">
+                                                <Button.Content>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="💾" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Guardar" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button.Content>
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- TAB 3: LOGS -->
+                        <Grid IsVisible="{Binding CurrentTab, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}">
+                            <Grid RowDefinitions="Auto, *">
+                                <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,20">
+                                    <TextBlock Text="Live Logs &amp; Depuración" FontSize="28" FontWeight="Bold" Foreground="#111827"/>
+                                    <TextBlock Text="Monitorea en tiempo real los eventos de sincronización del Worker." Foreground="#6B7280" FontSize="15"/>
+                                </StackPanel>
+
+                                <Border Grid.Row="1" Background="#1E1E1E" CornerRadius="8" Padding="16" BorderBrush="#333333" BorderThickness="1">
+                                    <!-- Using ListBox just as mock for now, could bind to an ObservableCollection of Log messages -->
+                                    <ScrollViewer>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="[2026-08-20 10:00:00] [INFO] Manager started." Foreground="#A6E22E" FontFamily="Consolas, Monospace"/>
+                                            <TextBlock Text="[2026-08-20 10:00:01] [INFO] Polling Azure DevOps..." Foreground="#F8F8F2" FontFamily="Consolas, Monospace"/>
+                                            <TextBlock Text="[2026-08-20 10:00:15] [WARN] Test warning log entry." Foreground="#FD971F" FontFamily="Consolas, Monospace"/>
+                                            <TextBlock Text="[System Debug] Current Status:" Foreground="#66D9EF" FontFamily="Consolas, Monospace"/>
+                                            <TextBlock Text="{Binding StatusMessage}" Foreground="#E6DB74" FontFamily="Consolas, Monospace"/>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                    </Grid>
+                </ContentControl>
+            </Grid>
+        </Grid>
+
+        <!-- ================================= NOTIFICATION OVERLAY ================================= -->
+        <Border Grid.Row="0" Grid.RowSpan="2" 
+                IsVisible="{Binding IsNotificationVisible}"
+                HorizontalAlignment="Right" VerticalAlignment="Top" 
+                Margin="32,90,32,0" 
+                Background="White" 
+                CornerRadius="8" 
+                Padding="16" 
+                BoxShadow="0 10 15 -3 #1A000000, 0 4 6 -2 #0D000000"
+                BorderBrush="{Binding IsNotificationError, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=True, FallbackValue='#E5E7EB'}"
+                BorderThickness="1,1,1,4">
+            
+            <StackPanel Orientation="Horizontal" Spacing="16" MaxWidth="350">
+                <TextBlock Text="❌" 
+                           IsVisible="{Binding IsNotificationError}"
+                           FontSize="24" VerticalAlignment="Center"/>
+                <TextBlock Text="✅" 
+                           IsVisible="{Binding !IsNotificationError}"
+                           FontSize="24" VerticalAlignment="Center"/>
+                           
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding NotificationTitle}" FontWeight="Bold" FontSize="15" Foreground="#111827"/>
+                    <TextBlock Text="{Binding NotificationMessage}" FontSize="13" Foreground="#6B7280" TextWrapping="Wrap"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- LOADING OVERLAY -->
+        <Border Grid.Row="0" Grid.RowSpan="2" 
+                Background="#80FFFFFF" 
+                IsVisible="{Binding IsBusy}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                <TextBlock Text="⏳" FontSize="48" HorizontalAlignment="Center">
+                    <TextBlock.Styles>
+                        <Style Selector="TextBlock">
+                            <!-- Could add simple animation here in future -->
+                        </Style>
+                    </TextBlock.Styles>
+                </TextBlock>
+                <Border Background="White" CornerRadius="8" Padding="16,8" BoxShadow="0 4 6 0 #1A000000">
+                    <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold" Foreground="#374151" FontSize="14"/>
                 </Border>
             </StackPanel>
-        </TabItem>
+        </Border>
 
-        <!-- Catálogo -->
-        <TabItem Header="Catálogo (Proyectos)">
-            <Grid RowDefinitions="*, Auto" Margin="10">
-                <DataGrid Grid.Row="0" Name="ProjectsGrid" AutoGenerateColumns="False" CanUserReorderColumns="True" CanUserResizeColumns="True" CanUserSortColumns="True" GridLinesVisibility="All">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Collection" Binding="{Binding CollectionName}" />
-                        <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" />
-                        <DataGridTextColumn Header="Access Status" Binding="{Binding AccessStatus}" />
-                        <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding IsEnabled}" />
-                    </DataGrid.Columns>
-                </DataGrid>
-                <Button Grid.Row="1" Content="Guardar Cambios" Margin="0,10,0,0" HorizontalAlignment="Right" />
-            </Grid>
-        </TabItem>
-
-        <!-- Configuración -->
-        <TabItem Header="Configuración">
-            <StackPanel Margin="20" Spacing="15" MaxWidth="500" HorizontalAlignment="Left">
-                <TextBlock Text="Configuración de Conexión" FontSize="18" FontWeight="SemiBold" />
-                
-                <TextBlock Text="Base URL:" />
-                <TextBox Text="{Binding BaseUrl}" Watermark="https://dev.azure.com/" />
-                
-                <TextBlock Text="Collection:" />
-                <TextBox Text="{Binding Collection}" Watermark="DefaultCollection" />
-                
-                <TextBlock Text="API Version:" />
-                <TextBox Text="{Binding ApiVersion}" Watermark="5.0-preview" />
-                
-                <TextBlock Text="Personal Access Token (PAT):" />
-                <TextBox Text="{Binding Token}" PasswordChar="*" />
-                
-                <Button Content="Test TFS Connection" Margin="0,10,0,0" />
-                <Button Content="Guardar Configuración" Margin="0,5,0,0" />
-            </StackPanel>
-        </TabItem>
-
-        <!-- Logs -->
-        <TabItem Header="Logs (Vivo)">
-            <ListBox Margin="10" Background="#1E1E1E" Foreground="#CCCCCC">
-                <TextBlock Text="[2026-08-20 10:00:00] [INFO] Manager started." />
-                <TextBlock Text="[2026-08-20 10:00:01] [INFO] Polling Azure DevOps..." />
-            </ListBox>
-        </TabItem>
-    </TabControl>
+    </Grid>
 </Window>

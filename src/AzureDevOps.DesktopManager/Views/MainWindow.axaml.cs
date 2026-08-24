@@ -1,11 +1,37 @@
+using System;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using AzureDevOps.DesktopManager.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AzureDevOps.DesktopManager.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly MainWindowViewModel _vm;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        // Resolve the ViewModel from the shared DI container (AppHost)
+        _vm = App.AppHost!.Services.GetRequiredService<MainWindowViewModel>();
+        DataContext = _vm;
+
+        // Load catalog projects as soon as the window opens
+        Opened += async (_, _) => await _vm.LoadProjectsAsync();
     }
+
+    // ─── Catálogo ─────────────────────────────────────────────────────────────
+
+    private async void OnGuardarCambiosClick(object? sender, RoutedEventArgs e)
+        => await _vm.SaveCatalogChangesAsync();
+
+    // ─── Configuración ────────────────────────────────────────────────────────
+
+    private async void OnTestTfsConnectionClick(object? sender, RoutedEventArgs e)
+        => await _vm.TestTfsConnectionAsync();
+
+    private async void OnGuardarConfiguracionClick(object? sender, RoutedEventArgs e)
+        => await _vm.SaveConfigurationAsync();
 }
