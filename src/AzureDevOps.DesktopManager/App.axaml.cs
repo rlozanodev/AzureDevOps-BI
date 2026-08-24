@@ -8,10 +8,18 @@ using AzureDevOps.Core.Configuration;
 using AzureDevOps.Core.Interfaces;
 using AzureDevOps.DesktopManager.ViewModels;
 using AzureDevOps.IngestionWorker.Services.Database;
+using AzureDevOps.IngestionWorker.Services.AzureDevOps;
+using AzureDevOps.IngestionWorker.Services.Transformation;
+using AzureDevOps.IngestionWorker.Services.PowerBI;
+using AzureDevOps.IngestionWorker.Jobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Extensions.Http;
+using System.Net.Http;
+using System.Linq;
 
 namespace AzureDevOps.DesktopManager;
 
@@ -64,17 +72,34 @@ public partial class App : Application
                     // ── Opciones ─────────────────────────────────────────────
                     services.Configure<DatabaseOptions>(config.GetSection(DatabaseOptions.SectionName));
                     services.Configure<AzureDevOpsOptions>(config.GetSection(AzureDevOpsOptions.SectionName));
+                    services.Configure<TransformationOptions>(config.GetSection(TransformationOptions.SectionName));
+                    services.Configure<PowerBiOptions>(config.GetSection(PowerBiOptions.SectionName));
+
+                    var devOpsConfig = config.GetSection(AzureDevOpsOptions.SectionName).Get<AzureDevOpsOptions>() ?? new AzureDevOpsOptions();
 
                     // ── Repositorios ─────────────────────────────────────────
                     services.AddSingleton<ICatalogRepository, CatalogRepository>();
                     services.AddSingleton<IConfigurationRepository, ConfigurationRepository>();
                     services.AddSingleton<AzureDevOps.Core.Interfaces.ILogRepository, AzureDevOps.IngestionWorker.Services.Database.LogRepository>();
+                    services.AddSingleton<IWorkItemStagingRepository, WorkItemStagingRepository>();
+                    services.AddSingleton<IPythonTransformationService, PythonTransformationService>();
+                    services.AddSingleton<IPowerBiRefreshService, PowerBiRefreshService>();
+
+                    services.AddHttpClient<IAzureDevOpsClient, AzureDevOpsClient>(client =>
+                    {
+                        client.BaseAddress = new Uri(devOpsConfig.BaseUrl.TrimEnd('/') + "/");
+                        client.Timeout = TimeSpan.FromSeconds(60);
+                        client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    })
+                    .ConfigurePrimaryHttpMessageHandler(() => NtlmHttpHandlerFactory.CreateHandler(devOpsConfig.Auth))
+                    .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
                     // ── ViewModel (transient: una instancia nueva por ventana) ─
                     services.AddTransient<MainWindowViewModel>();
 
                     // ── Servicio de sincronización de configuración ───────────
                     services.AddHostedService<Services.ConfigurationSyncService>();
+                    services.AddHostedService<IngestionOrchestratorJob>();
                 })
                 .Build();
 
@@ -106,7 +131,8 @@ public partial class App : Application
     private void ForceSync_Click(object? sender, EventArgs e)
     {
         Console.WriteLine("[DEBUG] ForceSync was clicked from Tray Icon!");
-        // TO DO: Trigger sync manually via IConfigurationRepository
+        var orchestrator = AppHost?.Services.GetServices<IHostedService>().OfType<IngestionOrchestratorJob>().FirstOrDefault();
+        orchestrator?.ForceSync();
     }
 
     private void Exit_Click(object? sender, EventArgs e)
@@ -122,6 +148,23 @@ public partial class App : Application
             }
             desktop.Shutdown();
         }
+    }
+
+    static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(int maxRetries, double baseDelaySeconds)
+    {
+        var jitterer = new Random();
+
+        return HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .OrResult(msg => (int)msg.StatusCode == 429) // Too Many Requests / Rate Limiting
+            .WaitAndRetryAsync(
+                maxRetries,
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(baseDelaySeconds, retryAttempt))
+                              + TimeSpan.FromMilliseconds(jitterer.Next(0, 500)),
+                onRetry: (outcome, timespan, retryAttempt, context) =>
+                {
+                    // Silent retry for UI logging
+                });
     }
 }
 

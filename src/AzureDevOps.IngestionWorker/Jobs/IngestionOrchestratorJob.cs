@@ -21,6 +21,12 @@ public class IngestionOrchestratorJob : BackgroundService
     private readonly TransformationOptions _transformationOptions;
     private readonly PowerBiOptions _powerBiOptions;
     private readonly ILogger<IngestionOrchestratorJob> _logger;
+    private CancellationTokenSource? _delayCts;
+
+    public void ForceSync()
+    {
+        _delayCts?.Cancel();
+    }
 
     public IngestionOrchestratorJob(
         IAzureDevOpsClient azureDevOpsClient,
@@ -230,11 +236,19 @@ public class IngestionOrchestratorJob : BackgroundService
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(devOpsOptions.PollIntervalSeconds), stoppingToken);
+                using (_delayCts = new CancellationTokenSource())
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, _delayCts.Token))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(devOpsOptions.PollIntervalSeconds), linkedCts.Token);
+                }
             }
             catch (OperationCanceledException)
             {
-                break;
+                if (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                _logger.LogInformation("Sync forzado por el usuario.");
             }
         }
     }
