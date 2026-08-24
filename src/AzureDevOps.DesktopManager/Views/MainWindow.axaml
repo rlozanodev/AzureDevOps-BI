@@ -101,6 +101,14 @@
                 <!-- Profile Bubble (Windows Identity) -->
                     
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- Sync Now Button -->
+                    <Button Click="OnForceSyncClick" Background="{DynamicResource ButtonPrimaryBg}" Foreground="{DynamicResource ButtonPrimaryText}" CornerRadius="6" Padding="12,8" Cursor="Hand" ToolTip.Tip="Forzar ciclo de sincronización ahora">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="🔄" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="Sincronizar" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    
                     <!-- Theme Toggle -->
                     <Button Click="OnToggleThemeClick" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="8">
                         <TextBlock Text="🌓" FontSize="20" VerticalAlignment="Center"/>

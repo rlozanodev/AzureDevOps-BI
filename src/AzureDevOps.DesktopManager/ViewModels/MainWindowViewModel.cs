@@ -195,7 +195,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         set { _isNotificationError = value; OnPropertyChanged(); }
     }
 
-    private void ShowNotification(string title, string message, bool isError = false)
+    public void ShowNotification(string title, string message, bool isError = false)
     {
         NotificationTitle = title;
         NotificationMessage = message;

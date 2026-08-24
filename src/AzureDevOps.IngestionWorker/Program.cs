@@ -57,11 +57,15 @@ try
             // Resilient HTTP Client with NTLM authentication and Polly retry policies
             services.AddHttpClient<IAzureDevOpsClient, AzureDevOpsClient>(client =>
             {
-                client.BaseAddress = new Uri(devOpsConfig.BaseUrl.TrimEnd('/') + "/");
                 client.Timeout = TimeSpan.FromSeconds(60);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             })
-            .ConfigurePrimaryHttpMessageHandler(() => NtlmHttpHandlerFactory.CreateHandler(devOpsConfig.Auth))
+            .ConfigurePrimaryHttpMessageHandler(provider => 
+            {
+                var dynamicOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
+                return NtlmHttpHandlerFactory.CreateHandler(dynamicOptions.Auth);
+            })
+            .SetHandlerLifetime(TimeSpan.Zero)
             .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
             // Main Background Ingestion Orchestrator

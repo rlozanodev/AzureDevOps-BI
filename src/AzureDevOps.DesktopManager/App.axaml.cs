@@ -87,11 +87,15 @@ public partial class App : Application
 
                     services.AddHttpClient<IAzureDevOpsClient, AzureDevOpsClient>(client =>
                     {
-                        client.BaseAddress = new Uri(devOpsConfig.BaseUrl.TrimEnd('/') + "/");
                         client.Timeout = TimeSpan.FromSeconds(60);
                         client.DefaultRequestHeaders.Add("Accept", "application/json");
                     })
-                    .ConfigurePrimaryHttpMessageHandler(() => NtlmHttpHandlerFactory.CreateHandler(devOpsConfig.Auth))
+                    .ConfigurePrimaryHttpMessageHandler(provider => 
+                    {
+                        var dynamicOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
+                        return NtlmHttpHandlerFactory.CreateHandler(dynamicOptions.Auth);
+                    })
+                    .SetHandlerLifetime(TimeSpan.Zero) // Force handler recreation so Auth changes take effect immediately
                     .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
                     // ── ViewModel (transient: una instancia nueva por ventana) ─

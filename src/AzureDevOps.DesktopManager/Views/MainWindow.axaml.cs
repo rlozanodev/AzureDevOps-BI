@@ -1,8 +1,11 @@
 using System;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using AzureDevOps.DesktopManager.ViewModels;
+using AzureDevOps.IngestionWorker.Jobs;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace AzureDevOps.DesktopManager.Views;
 
@@ -58,5 +61,15 @@ public partial class MainWindow : Window
                 app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
             }
         }
+    }
+
+    private void OnForceSyncClick(object? sender, RoutedEventArgs e)
+    {
+        Console.WriteLine("[DEBUG] ForceSync was clicked from Main Window!");
+        var orchestrator = App.AppHost?.Services.GetServices<IHostedService>().OfType<IngestionOrchestratorJob>().FirstOrDefault();
+        orchestrator?.ForceSync();
+        
+        // Optional: show a notification if possible via VM
+        _vm.ShowNotification("Sincronización Iniciada", "Se ha forzado el descubrimiento de proyectos e ingesta.", false);
     }
 }
