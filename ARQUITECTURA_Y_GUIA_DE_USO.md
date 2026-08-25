@@ -1,5 +1,5 @@
 # Guía de Arquitectura, Flujo de Trabajo y Puesta en Marcha
-## Sistema Headless de Ingesta, Procesamiento y Automatización de Métricas de Azure DevOps Server (TFS 2019) para Power BI Web
+## Sistema de Ingesta (Headless & Desktop UI), Procesamiento y Automatización de Métricas de Azure DevOps Server (TFS 2019) para Power BI Web
 
 ---
 
@@ -7,7 +7,9 @@
 
 Se ha diseñado e implementado desde el cero absoluto una **plataforma desacoplada, modular, resiliente e idempotente** para extraer datos de Work Items desde una instancia local **On-Premise de Azure DevOps Server (TFS 2019)**, almacenarlos en una base de datos **PostgreSQL 16**, transformarlos vectorialmente con un motor OLAP de ultra alto rendimiento (**Python + DuckDB + uv**) hacia un **modelo dimensional en estrella (Star Schema)**, y automatizar el refresco del dataset en **Power BI Web (Service Principal / REST API)** sin intervención humana.
 
-```
+Además, se ha incorporado una **interfaz gráfica de escritorio (Desktop Manager en Avalonia UI)** que permite monitorear y gestionar visualmente la ingesta, ver métricas en tiempo real, configurar credenciales NTLM, y minimizar la aplicación a la bandeja del sistema (System Tray).
+
+```text
 +---------------------------------------------------------------------------------------------------+
 |                                 ARQUITECTURA GENERAL DEL SISTEMA                                  |
 +---------------------------------------------------------------------------------------------------+
@@ -17,7 +19,7 @@ Se ha diseñado e implementado desde el cero absoluto una **plataforma desacopla
 |               │                                                                                   |
 |               │  1. WIQL (Delta Sync) + Batch 200 items (api-version=5.0-preview)                 |
 |               ▼                                                                                   |
-|   [ .NET 8/9 Worker Service ] ──(Polly Retries + Windows NTLM Auth)                               |
+|   [ .NET 8/9 Worker Service / Avalonia Desktop UI ] ──(Polly Retries + Windows NTLM Auth)         |
 |               │                                                                                   |
 |               │  2. Upsert Idempotente (Dapper)                                                   |
 |               ▼                                                                                   |
@@ -74,6 +76,10 @@ Se ha diseñado e implementado desde el cero absoluto una **plataforma desacopla
 - *Motivo*: Una vez que los datos dimensionales están actualizados, el informe en Power BI Web debe reflejar la información inmediatamente sin esperar a los programadores de refresco de Power BI.
 - *Solución*: El Worker invoca `PowerBiRefreshService`, el cual obtiene un token OAuth2 mediante **MSAL (Azure AD Service Principal / App Registration)** y dispara `RefreshDatasetInGroupAsync` en la Power BI REST API.
 
+### E. Desktop Manager UI (Avalonia) y AutoDiscover
+- *Motivo*: Proporcionar una forma amigable de gestionar configuraciones (incluyendo credenciales NTLM), ver los logs y el estado del worker en tiempo real, sin depender exclusivamente de consolas, en aquellos entornos donde no se requiera ejecución por consola pura.
+- *Solución*: Se creó `AzureDevOps.DesktopManager` utilizando **Avalonia UI** y el patrón **MVVM**. Esta aplicación carga la configuración original del Worker (`AutoDiscover` del `appsettings.json`) y ejecuta el ciclo principal de ingestión internamente como un *Hosted Service*. Permite la configuración desde una UI dividida en pestañas (Dashboard, Config, Mapping, Logs) y la minimización a la bandeja del sistema (System Tray).
+
 ---
 
 ## 3. Estructura Completa del Proyecto
@@ -102,7 +108,13 @@ AzureDevOps-BI/
 │   │   ├── Models/                   # Wiql DTOs, WorkItem DTOs, RawWorkItemEntity, Watermark...
 │   │   └── Interfaces/               # IAzureDevOpsClient, IWorkItemStagingRepository...
 │   │
-│   ├── AzureDevOps.IngestionWorker/  # Worker Service en .NET 8/9
+│   ├── AzureDevOps.DesktopManager/   # Interfaz Gráfica (Avalonia UI) y Host del Worker
+│   │   ├── App.axaml                 # Configuración principal y System Tray
+│   │   ├── Program.cs                # Entrypoint de Desktop
+│   │   ├── ViewModels/               # ViewModel para la UI (MVVM)
+│   │   └── Views/                    # Vistas y pestañas (Dashboard, Config, Mapping, Logs)
+│   │
+│   ├── AzureDevOps.IngestionWorker/  # Worker Service en .NET 8/9 (Modo Consola)
 │   │   ├── appsettings.json          # Configuración base
 │   │   ├── appsettings.Development.json
 │   │   ├── Program.cs                # Entrypoint, DI, Serilog, Polly Retry Policies, NTLM Handler
@@ -208,7 +220,8 @@ PowerBi__DatasetId=00000000-0000-0000-0000-000000000000
 
 ### Archivo 2: `src/AzureDevOps.IngestionWorker/appsettings.json`
 
-Este archivo contiene la configuración de respaldo en caso de no utilizar variables de entorno. Puedes mantenerlo sincronizado con `.env` o definir perfiles específicos en `appsettings.Development.json` y `appsettings.Production.json`.
+Este archivo contiene la configuración de respaldo en caso de no utilizar variables de entorno. Puedes mantenerlo sincronizado con `.env` o definir perfiles específicos en `appsettings.Development.json`.
+> **Importante (AutoDiscover)**: La interfaz gráfica de `AzureDevOps.DesktopManager` buscará automáticamente este archivo `appsettings.json` en el directorio de `IngestionWorker` y cargará sus valores, por lo que es la fuente central de verdad si ejecutas desde la UI.
 
 ---
 
@@ -245,11 +258,18 @@ Verifica que todo el sistema compile y pase las pruebas:
 dotnet test
 ```
 
-### Paso 4: Iniciar el Worker de Ingesta (.NET)
-Ejecuta el Worker Service:
+### Paso 4: Iniciar el Sistema (Worker CLI o Desktop UI)
+
+**Opción A: Ejecutar el Worker Headless (Consola / Servidor)**
 ```bash
 dotnet run --project src/AzureDevOps.IngestionWorker/AzureDevOps.IngestionWorker.csproj
 ```
+
+**Opción B: Ejecutar la Interfaz Gráfica (Desktop Manager)**
+```bash
+dotnet run --project src/AzureDevOps.DesktopManager/AzureDevOps.DesktopManager.csproj
+```
+*(Al iniciar con el Desktop Manager, dispondrás de un Dashboard visual, logs en vivo, y podrás minimizar la aplicación a la bandeja del sistema)*
 El Worker realizará inmediatamente:
 1. Lectura de la marca de agua (`staging.sync_watermarks`).
 2. Consulta WIQL incremental contra tu servidor `http://edvwp-tfs19-ap/`.

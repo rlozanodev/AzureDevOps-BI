@@ -90,3 +90,29 @@ Simplemente haz doble clic sobre el ejecutable generado o ejecútalo desde tu te
 1. **Configuración**: Dirígete a la pestaña **Configuración**. Ingresa la `Base URL` (ej. `https://dev.azure.com/mi-organizacion`), el nombre de tu `Collection` (ej. `DefaultCollection`) y tu **Personal Access Token (PAT)**.
 2. **Auto-Descubrimiento**: Al conectarse exitosamente (y correr el ciclo interno en background), dirígete a la pestaña **Catálogo (Proyectos)**. Verás la lista de proyectos descubiertos que se han descargado e insertado en PostgreSQL.
 3. Puedes deshabilitar los proyectos que no quieras analizar apagando el _switch_ "Enabled", y presionar **Guardar Cambios** para persistir esto en tu catálogo.
+
+---
+
+## 7. Sandbox CLI (Depuración de Autenticación NTLM)
+
+El proyecto **AzureDevOps.SandboxCLI** es una herramienta de consola independiente creada específicamente para aislar y depurar problemas de autenticación NTLM contra servidores locales de Azure DevOps (TFS). 
+
+### Cómo compilar y ejecutar el Sandbox CLI
+
+1. **Abre una terminal en la raíz del proyecto**.
+2. **Ejecuta el proyecto directamente** usando `dotnet run`:
+   ```bash
+   dotnet run --project src/AzureDevOps.SandboxCLI/AzureDevOps.SandboxCLI.csproj
+   ```
+
+### Cómo usarlo correctamente
+
+- **Objetivo**: La herramienta intercepta todo el tráfico HTTP entre el cliente y el servidor, mostrándolo en consola con colores estructurados.
+- **Configuración de Credenciales**: Las credenciales, el endpoint (ej. `http://edvwp-tfs19-ap/`) y el dominio están configurados (hardcodeados) directamente en el archivo `src/AzureDevOps.SandboxCLI/Program.cs` por diseño, para garantizar un ambiente estricto y aislado. 
+- **Verificación**: Si necesitas probar credenciales diferentes o cambiar el endpoint, simplemente edita el bloque `services.Configure<AzureDevOpsOptions>` dentro del `Program.cs` del SandboxCLI y vuelve a ejecutar la herramienta.
+- **Salida en Consola**:
+  - **Cyan**: Peticiones HTTP salientes (Request). Presta atención a las cabeceras `Authorization`.
+  - **Amarillo**: Respuestas HTTP entrantes (Response). Presta atención al `StatusCode` y las cabeceras `WWW-Authenticate` (claves para el handshake de NTLM/Negociate).
+  - **Rojo**: Errores y Excepciones puras (ej. error 401 final si falló la negociación).
+
+Al terminar su ciclo, el proceso quedará en espera (`Console.ReadLine()`) para que puedas analizar cómodamente la salida HTTP en tu terminal.
