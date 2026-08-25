@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,19 +19,35 @@ services.AddLogging(builder =>
     builder.SetMinimumLevel(LogLevel.Debug);
 });
 
-// Configure AzureDevOpsOptions hardcoded
+bool useSso = args.Contains("--sso");
+
+// Configure AzureDevOpsOptions conditionally
 services.Configure<AzureDevOpsOptions>(options =>
 {
     options.BaseUrl = "http://edvwp-tfs19-ap/";
     options.Collection = "Dir TI"; // or "Dir TI"
     options.ApiVersion = "5.0-preview";
-    options.Auth = new AzureDevOpsAuthOptions
+    
+    if (useSso)
     {
-        UseDefaultCredentials = false,
-        Domain = "OFICINAS",
-        Username = "roberto_lozano",
-        Password = "Aten@301421468"
-    };
+        options.Auth = new AzureDevOpsAuthOptions
+        {
+            UseDefaultCredentials = true,
+            Domain = null,
+            Username = null,
+            Password = null
+        };
+    }
+    else
+    {
+        options.Auth = new AzureDevOpsAuthOptions
+        {
+            UseDefaultCredentials = false,
+            Domain = "OFICINAS",
+            Username = "roberto_lozano",
+            Password = "Aten@301421468"
+        };
+    }
 });
 
 // Register HttpSnifferHandler
@@ -52,6 +69,20 @@ services.AddHttpClient<IAzureDevOpsClient, AzureDevOpsClient>()
     .AddHttpMessageHandler<HttpSnifferHandler>();
 
 var serviceProvider = services.BuildServiceProvider();
+
+Console.WriteLine("==========================================================================");
+if (useSso)
+{
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine("MODO AUTENTICACIÓN: SSO (Default Network Credentials)");
+}
+else
+{
+    Console.ForegroundColor = ConsoleColor.Magenta;
+    Console.WriteLine("MODO AUTENTICACIÓN: Credenciales Explícitas");
+}
+Console.ResetColor();
+Console.WriteLine("==========================================================================\n");
 
 Console.WriteLine("Starting SandboxCLI to test NTLM Authentication...");
 
