@@ -107,6 +107,43 @@ try
             Console.ResetColor();
         }
     }
+
+    Console.WriteLine("\n\n=======================================================");
+    Console.WriteLine("🚀 INICIANDO PRUEBA DE EXTRACCIÓN DE WORK ITEMS");
+    Console.WriteLine("=======================================================");
+    
+    var testCollection = "Dir TI";
+    var testProject = "Pruebas Automatizadas";
+    
+    Console.WriteLine($"\n🔍 Consultando IDs de Work Items para la colección '{testCollection}' y proyecto '{testProject}'...");
+    
+    var workItemIds = await client.QueryWorkItemIdsAsync(testCollection, testProject, null);
+    
+    if (workItemIds == null || workItemIds.Count == 0)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("⚠️ No se encontraron Work Items para este proyecto.");
+        Console.ResetColor();
+    }
+    else
+    {
+        Console.WriteLine($"\n✅ Encontrados {workItemIds.Count} Work Item(s) en total por WIQL.");
+        
+        var batchIds = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Take(workItemIds, 5));
+        Console.WriteLine($"\n📦 Descargando detalles (Batching) para los primeros {batchIds.Count} IDs: {string.Join(", ", batchIds)}...");
+        
+        var workItems = await client.GetWorkItemsBatchAsync(testCollection, batchIds);
+        
+        Console.WriteLine($"\n📋 Resultados del Batch ({workItems.Count} elementos devueltos):");
+        foreach (var wi in workItems)
+        {
+            var wiType = wi.GetFieldValue<string>("System.WorkItemType") ?? "Desconocido";
+            var state = wi.GetFieldValue<string>("System.State") ?? "Desconocido";
+            var title = wi.GetFieldValue<string>("System.Title") ?? "Sin Título";
+            
+            Console.WriteLine($"   - [ID: {wi.Id}] [{wiType}] {title} (Estado: {state})");
+        }
+    }
 }
 catch (HttpRequestException httpEx)
 {
