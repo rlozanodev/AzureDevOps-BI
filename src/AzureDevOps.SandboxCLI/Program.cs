@@ -22,7 +22,7 @@ services.AddLogging(builder =>
 services.Configure<AzureDevOpsOptions>(options =>
 {
     options.BaseUrl = "http://edvwp-tfs19-ap/";
-    options.Collection = "DefaultCollection"; // or "Dir TI"
+    options.Collection = "Dir TI"; // or "Dir TI"
     options.ApiVersion = "5.0-preview";
     options.Auth = new AzureDevOpsAuthOptions
     {
@@ -36,12 +36,18 @@ services.Configure<AzureDevOpsOptions>(options =>
 // Register HttpSnifferHandler
 services.AddTransient<HttpSnifferHandler>();
 
+services.AddSingleton<IDynamicConfigProvider>(sp => 
+{
+    var options = sp.GetRequiredService<IOptions<AzureDevOpsOptions>>();
+    return new SandboxConfigProvider(options);
+});
+
 // Register HttpClient for AzureDevOpsClient
 services.AddHttpClient<IAzureDevOpsClient, AzureDevOpsClient>()
     .ConfigurePrimaryHttpMessageHandler((sp) =>
     {
-        var options = sp.GetRequiredService<IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
-        return NtlmHttpHandlerFactory.CreateHandler(options.Auth);
+        var configProvider = sp.GetRequiredService<IDynamicConfigProvider>();
+        return NtlmHttpHandlerFactory.CreateHandler(configProvider);
     })
     .AddHttpMessageHandler<HttpSnifferHandler>();
 
@@ -54,19 +60,58 @@ try
     var client = serviceProvider.GetRequiredService<IAzureDevOpsClient>();
     var options = serviceProvider.GetRequiredService<IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
     
-    Console.WriteLine($"Calling GetProjectsAsync on {options.BaseUrl}{options.Collection}...");
-    var projects = await client.GetProjectsAsync(options.Collection);
+    Console.WriteLine($"\n🔍 Explorando topología de Azure DevOps Server ({options.BaseUrl})...");
     
-    Console.WriteLine($"\nSuccess! Found {projects.Count} projects.");
-    foreach (var p in projects)
+    var collections = await client.GetCollectionsAsync();
+    
+    if (collections == null || collections.Count == 0)
     {
-        Console.WriteLine($"- {p.Name} ({p.Id})");
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("⚠️ No se encontró ninguna colección.");
+        Console.ResetColor();
+        return;
+    }
+
+    Console.WriteLine($"\n📦 Encontradas {collections.Count} Colección(es):");
+
+    foreach (var col in collections)
+    {
+        Console.WriteLine($"\n=======================================================");
+        Console.WriteLine($"🏢 Colección: {col.Name}");
+        Console.WriteLine($"   ID: {col.Id}");
+        Console.WriteLine($"   Estado: {col.State}");
+        Console.WriteLine($"=======================================================");
+
+        try
+        {
+            var projects = await client.GetProjectsAsync(col.Name);
+            Console.WriteLine($"\n   📑 Proyectos ({projects.Count}):");
+            
+            foreach (var p in projects)
+            {
+                Console.WriteLine($"      - {p.Name} [ID: {p.Id}, Estado: {p.State}]");
+            }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"\n   ❌ Error al obtener proyectos de '{col.Name}':");
+            Console.WriteLine($"      StatusCode: {httpEx.StatusCode}");
+            Console.WriteLine($"      Mensaje: {httpEx.Message}");
+            Console.ResetColor();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"\n   ❌ Excepción inesperada en '{col.Name}': {ex.Message}");
+            Console.ResetColor();
+        }
     }
 }
 catch (HttpRequestException httpEx)
 {
     Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"\nHttpRequestException caught!");
+    Console.WriteLine($"\n❌ HttpRequestException general atrapada!");
     Console.WriteLine($"StatusCode: {httpEx.StatusCode}");
     Console.WriteLine($"Message: {httpEx.Message}");
     Console.ResetColor();
@@ -74,10 +119,18 @@ catch (HttpRequestException httpEx)
 catch (Exception ex)
 {
     Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"\nUnexpected Exception caught!");
+    Console.WriteLine($"\n❌ Excepción inesperada general!");
     Console.WriteLine(ex.ToString());
     Console.ResetColor();
 }
 
 Console.WriteLine("\nPress ENTER to exit...");
 Console.ReadLine();
+
+class SandboxConfigProvider : AzureDevOps.Core.Interfaces.IDynamicConfigProvider
+{
+    public AzureDevOps.Core.Configuration.AzureDevOpsOptions Current { get; }
+    public SandboxConfigProvider(Microsoft.Extensions.Options.IOptions<AzureDevOps.Core.Configuration.AzureDevOpsOptions> options) => Current = options.Value;
+    public System.Threading.Tasks.Task<AzureDevOps.Core.Configuration.AzureDevOpsOptions> GetConfigAsync(System.Threading.CancellationToken ct = default) => System.Threading.Tasks.Task.FromResult(Current);
+    public System.Threading.Tasks.Task UpdateConfigAsync(AzureDevOps.Core.Configuration.AzureDevOpsOptions newConfig, System.Threading.CancellationToken ct = default) => System.Threading.Tasks.Task.CompletedTask;
+}

@@ -14,7 +14,7 @@ namespace AzureDevOps.IngestionWorker.Services.AzureDevOps;
 public class AzureDevOpsClient : IAzureDevOpsClient
 {
     private readonly HttpClient _httpClient;
-    private readonly IOptionsMonitor<AzureDevOpsOptions> _optionsMonitor;
+    private readonly IDynamicConfigProvider _configProvider;
     private readonly ILogger<AzureDevOpsClient> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -24,11 +24,11 @@ public class AzureDevOpsClient : IAzureDevOpsClient
 
     public AzureDevOpsClient(
         HttpClient httpClient,
-        IOptionsMonitor<AzureDevOpsOptions> optionsMonitor,
+        IDynamicConfigProvider configProvider,
         ILogger<AzureDevOpsClient> logger)
     {
         _httpClient = httpClient;
-        _optionsMonitor = optionsMonitor;
+        _configProvider = configProvider;
         _logger = logger;
     }
 
@@ -38,17 +38,17 @@ public class AzureDevOpsClient : IAzureDevOpsClient
         DateTime? changedSinceUtc,
         CancellationToken cancellationToken = default)
     {
-        var baseUrl = _optionsMonitor.CurrentValue.BaseUrl.TrimEnd('/');
+        var baseUrl = _configProvider.Current.BaseUrl.TrimEnd('/');
         var cleanCollection = collection.Trim('/');
         
         string requestUrl;
         if (!string.IsNullOrWhiteSpace(project))
         {
-            requestUrl = $"{baseUrl}/{cleanCollection}/{Uri.EscapeDataString(project)}/_apis/wit/wiql?api-version={_optionsMonitor.CurrentValue.ApiVersion}";
+            requestUrl = $"{baseUrl}/{cleanCollection}/{Uri.EscapeDataString(project)}/_apis/wit/wiql?api-version={_configProvider.Current.ApiVersion}";
         }
         else
         {
-            requestUrl = $"{baseUrl}/{cleanCollection}/_apis/wit/wiql?api-version={_optionsMonitor.CurrentValue.ApiVersion}";
+            requestUrl = $"{baseUrl}/{cleanCollection}/_apis/wit/wiql?api-version={_configProvider.Current.ApiVersion}";
         }
 
         string wiql;
@@ -116,10 +116,10 @@ public class AzureDevOpsClient : IAzureDevOpsClient
             throw new ArgumentException("TFS 2019 API limits batch requests to a maximum of 200 items.", nameof(workItemIds));
         }
 
-        var baseUrl = _optionsMonitor.CurrentValue.BaseUrl.TrimEnd('/');
+        var baseUrl = _configProvider.Current.BaseUrl.TrimEnd('/');
         var cleanCollection = collection.Trim('/');
         var idsParam = string.Join(",", workItemIds);
-        var requestUrl = $"{baseUrl}/{cleanCollection}/_apis/wit/workitems?ids={idsParam}&$expand=all&api-version={_optionsMonitor.CurrentValue.ApiVersion}";
+        var requestUrl = $"{baseUrl}/{cleanCollection}/_apis/wit/workitems?ids={idsParam}&$expand=all&api-version={_configProvider.Current.ApiVersion}";
 
         _logger.LogDebug("Fetching batch of {Count} work items from {Url}", workItemIds.Count, requestUrl);
 
@@ -156,7 +156,7 @@ public class AzureDevOpsClient : IAzureDevOpsClient
 
     public async Task<List<TeamProjectDto>> GetProjectsAsync(string collection, CancellationToken cancellationToken = default)
     {
-        var baseUrl = _optionsMonitor.CurrentValue.BaseUrl.TrimEnd('/');
+        var baseUrl = _configProvider.Current.BaseUrl.TrimEnd('/');
         var cleanCollection = collection.Trim('/');
         // Note: For Azure DevOps Server 2019/2020/2022, api-version for projects might need to be 5.0-preview, 
         // we'll use the API version from configuration, or append a default if needed. 
@@ -170,5 +170,19 @@ public class AzureDevOpsClient : IAzureDevOpsClient
 
         var result = await response.Content.ReadFromJsonAsync<ProjectsResponse>(JsonOptions, cancellationToken);
         return result?.Value ?? new List<TeamProjectDto>();
+    }
+
+    public async Task<List<ProjectCollectionDto>> GetCollectionsAsync(CancellationToken cancellationToken = default)
+    {
+        var baseUrl = _configProvider.Current.BaseUrl.TrimEnd('/');
+        var requestUrl = $"{baseUrl}/_apis/projectcollections?api-version={_configProvider.Current.ApiVersion}";
+
+        _logger.LogInformation("Discovering collections at {Url}", requestUrl);
+
+        var response = await _httpClient.GetAsync(requestUrl, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ProjectCollectionsResponse>(JsonOptions, cancellationToken);
+        return result?.Value ?? new List<ProjectCollectionDto>();
     }
 }

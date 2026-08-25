@@ -85,6 +85,8 @@ public partial class App : Application
                     services.AddSingleton<IPythonTransformationService, PythonTransformationService>();
                     services.AddSingleton<IPowerBiRefreshService, PowerBiRefreshService>();
 
+                    services.AddSingleton<IDynamicConfigProvider, AzureDevOps.Core.Services.DynamicConfigProvider>();
+
                     services.AddHttpClient<IAzureDevOpsClient, AzureDevOpsClient>(client =>
                     {
                         client.Timeout = TimeSpan.FromSeconds(60);
@@ -92,10 +94,10 @@ public partial class App : Application
                     })
                     .ConfigurePrimaryHttpMessageHandler(provider => 
                     {
-                        var dynamicOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
-                        return NtlmHttpHandlerFactory.CreateHandler(dynamicOptions.Auth);
+                        var dynamicConfig = provider.GetRequiredService<IDynamicConfigProvider>();
+                        return NtlmHttpHandlerFactory.CreateHandler(dynamicConfig);
                     })
-                    .SetHandlerLifetime(TimeSpan.FromSeconds(1)) // Force handler recreation so Auth changes take effect immediately
+                    .SetHandlerLifetime(TimeSpan.FromMinutes(2)) // Force handler recreation so Auth changes take effect immediately
                     .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
                     // ── ViewModel (transient: una instancia nueva por ventana) ─

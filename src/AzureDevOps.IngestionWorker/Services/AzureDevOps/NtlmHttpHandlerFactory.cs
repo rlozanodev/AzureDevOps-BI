@@ -1,33 +1,19 @@
 using System.Net;
-using AzureDevOps.Core.Configuration;
+using System.Net.Http;
+using AzureDevOps.Core.Interfaces;
 
 namespace AzureDevOps.IngestionWorker.Services.AzureDevOps;
 
 public static class NtlmHttpHandlerFactory
 {
-    public static HttpMessageHandler CreateHandler(AzureDevOpsAuthOptions authOptions)
+    public static HttpMessageHandler CreateHandler(IDynamicConfigProvider configProvider)
     {
         var handler = new HttpClientHandler
         {
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            UseDefaultCredentials = false, // Always false so it reads from Credentials property dynamically
+            Credentials = new DynamicNtlmCredentials(configProvider)
         };
-
-        if (authOptions.UseDefaultCredentials)
-        {
-            // Windows Integrated Authentication (NTLM / Kerberos / SSO)
-            handler.UseDefaultCredentials = true;
-            handler.Credentials = CredentialCache.DefaultNetworkCredentials;
-        }
-        else if (!string.IsNullOrWhiteSpace(authOptions.Username) && !string.IsNullOrWhiteSpace(authOptions.Password))
-        {
-            // Explicit NTLM credentials
-            handler.UseDefaultCredentials = false;
-            handler.Credentials = new NetworkCredential(
-                authOptions.Username,
-                authOptions.Password,
-                authOptions.Domain ?? string.Empty
-            );
-        }
 
         return handler;
     }

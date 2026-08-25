@@ -17,7 +17,7 @@ public class IngestionOrchestratorJob : BackgroundService
     private readonly ICatalogRepository _catalogRepository;
     private readonly IPythonTransformationService _transformationService;
     private readonly IPowerBiRefreshService _powerBiService;
-    private readonly IOptionsMonitor<AzureDevOpsOptions> _devOpsOptionsMonitor;
+    private readonly IDynamicConfigProvider _configProvider;
     private readonly TransformationOptions _transformationOptions;
     private readonly PowerBiOptions _powerBiOptions;
     private readonly ILogger<IngestionOrchestratorJob> _logger;
@@ -34,7 +34,7 @@ public class IngestionOrchestratorJob : BackgroundService
         ICatalogRepository catalogRepository,
         IPythonTransformationService transformationService,
         IPowerBiRefreshService powerBiService,
-        IOptionsMonitor<AzureDevOpsOptions> devOpsOptionsMonitor,
+        IDynamicConfigProvider configProvider,
         IOptions<TransformationOptions> transformationOptions,
         IOptions<PowerBiOptions> powerBiOptions,
         ILogger<IngestionOrchestratorJob> logger)
@@ -44,7 +44,7 @@ public class IngestionOrchestratorJob : BackgroundService
         _catalogRepository = catalogRepository;
         _transformationService = transformationService;
         _powerBiService = powerBiService;
-        _devOpsOptionsMonitor = devOpsOptionsMonitor;
+        _configProvider = configProvider;
         _transformationOptions = transformationOptions.Value;
         _powerBiOptions = powerBiOptions.Value;
         _logger = logger;
@@ -52,13 +52,13 @@ public class IngestionOrchestratorJob : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var devOpsOptions = _devOpsOptionsMonitor.CurrentValue;
+        var devOpsOptions = await _configProvider.GetConfigAsync(stoppingToken);
         _logger.LogInformation("Azure DevOps Ingestion Orchestrator Service started. Poll interval: {Interval}s",
             devOpsOptions.PollIntervalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            devOpsOptions = _devOpsOptionsMonitor.CurrentValue;
+            devOpsOptions = await _configProvider.GetConfigAsync(stoppingToken);
             var collectionName = devOpsOptions.Collection;
 
             try

@@ -23,4 +23,9 @@ public interface IAzureDevOpsClient
     /// Discovers all projects within a given collection.
     /// </summary>
     Task<List<AzureDevOps.Core.Models.Discovery.TeamProjectDto>> GetProjectsAsync(string collection, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Discovers all collections in the Azure DevOps Server.
+    /// </summary>
+    Task<List<AzureDevOps.Core.Models.Discovery.ProjectCollectionDto>> GetCollectionsAsync(CancellationToken cancellationToken = default);
 }

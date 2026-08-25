@@ -4,6 +4,7 @@ using AzureDevOps.Core.Configuration;
 using AzureDevOps.Core.Models.Wiql;
 using AzureDevOps.Core.Models.WorkItems;
 using AzureDevOps.IngestionWorker.Services.AzureDevOps;
+using AzureDevOps.Core.Interfaces;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -53,7 +54,9 @@ public class AzureDevOpsClientTests
             });
 
         var httpClient = new HttpClient(mockHandler.Object);
-        var client = new AzureDevOpsClient(httpClient, Options.Create(_options), NullLogger<AzureDevOpsClient>.Instance);
+        var mockConfigProvider = new Mock<IDynamicConfigProvider>();
+        mockConfigProvider.Setup(m => m.Current).Returns(_options);
+        var client = new AzureDevOpsClient(httpClient, mockConfigProvider.Object, NullLogger<AzureDevOpsClient>.Instance);
 
         // Act
         var ids = await client.QueryWorkItemIdsAsync("DefaultCollection", null, null);
@@ -91,7 +94,9 @@ public class AzureDevOpsClientTests
             });
 
         var httpClient = new HttpClient(mockHandler.Object);
-        var client = new AzureDevOpsClient(httpClient, Options.Create(_options), NullLogger<AzureDevOpsClient>.Instance);
+        var mockConfigProvider = new Mock<IDynamicConfigProvider>();
+        mockConfigProvider.Setup(m => m.Current).Returns(_options);
+        var client = new AzureDevOpsClient(httpClient, mockConfigProvider.Object, NullLogger<AzureDevOpsClient>.Instance);
 
         // Act
         var batchSizes = new List<int>();

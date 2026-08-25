@@ -54,6 +54,8 @@ try
             services.AddSingleton<IPythonTransformationService, PythonTransformationService>();
             services.AddSingleton<IPowerBiRefreshService, PowerBiRefreshService>();
 
+            services.AddSingleton<IDynamicConfigProvider, AzureDevOps.Core.Services.DynamicConfigProvider>();
+
             // Resilient HTTP Client with NTLM authentication and Polly retry policies
             services.AddHttpClient<IAzureDevOpsClient, AzureDevOpsClient>(client =>
             {
@@ -62,10 +64,10 @@ try
             })
             .ConfigurePrimaryHttpMessageHandler(provider => 
             {
-                var dynamicOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<AzureDevOpsOptions>>().CurrentValue;
-                return NtlmHttpHandlerFactory.CreateHandler(dynamicOptions.Auth);
+                var dynamicConfig = provider.GetRequiredService<IDynamicConfigProvider>();
+                return NtlmHttpHandlerFactory.CreateHandler(dynamicConfig);
             })
-            .SetHandlerLifetime(TimeSpan.FromSeconds(1))
+            .SetHandlerLifetime(TimeSpan.FromMinutes(2)) // We can safely cache the handler now!
             .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
             // Main Background Ingestion Orchestrator

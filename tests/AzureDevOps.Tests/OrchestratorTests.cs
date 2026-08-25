@@ -30,8 +30,10 @@ public class OrchestratorTests
         var transformMock = new Mock<IPythonTransformationService>();
         var powerBiMock = new Mock<IPowerBiRefreshService>();
 
-        var optionsMonitor = new Mock<IOptionsMonitor<AzureDevOpsOptions>>();
-        optionsMonitor.Setup(m => m.CurrentValue).Returns(new AzureDevOpsOptions { Collection = "TestCol", PollIntervalSeconds = 9999, BatchSize = 200 });
+        var configProviderMock = new Mock<IDynamicConfigProvider>();
+        var devOpsOptions = new AzureDevOpsOptions { Collection = "TestCol", PollIntervalSeconds = 9999, BatchSize = 200 };
+        configProviderMock.Setup(m => m.Current).Returns(devOpsOptions);
+        configProviderMock.Setup(m => m.GetConfigAsync(It.IsAny<CancellationToken>())).ReturnsAsync(devOpsOptions);
 
         var transformOptions = Options.Create(new TransformationOptions { Enabled = false });
         var powerBiOptions = Options.Create(new PowerBiOptions { Enabled = false });
@@ -42,7 +44,7 @@ public class OrchestratorTests
             catalogRepoMock.Object,
             transformMock.Object,
             powerBiMock.Object,
-            optionsMonitor.Object,
+            configProviderMock.Object,
             transformOptions,
             powerBiOptions,
             NullLogger<IngestionOrchestratorJob>.Instance
