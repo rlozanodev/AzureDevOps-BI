@@ -193,6 +193,14 @@
                             <TextBlock Text="Live Logs &amp; Debug" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
+
+                    <RadioButton Classes="NavButton" IsChecked="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}"
+                                 Click="OnNavTabClick" CommandParameter="4">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="🛠️" FontSize="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Ajustes Avanzados" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
                 </StackPanel>
             </Border>
 
@@ -219,6 +227,11 @@
                         <!-- TAB 3: LOGS -->
                         <Grid IsVisible="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}">
                             <tabs:LogsTab />
+                        </Grid>
+
+                        <!-- TAB 4: ADVANCED -->
+                        <Grid IsVisible="{Binding CurrentTab, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}">
+                            <tabs:AdvancedTab />
                         </Grid>
                     </Grid>
                 </ContentControl>

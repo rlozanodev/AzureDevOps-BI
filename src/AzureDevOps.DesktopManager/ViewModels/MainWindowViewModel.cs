@@ -80,6 +80,17 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private string _authPassword = string.Empty;
     public string AuthPassword { get => _authPassword; set { _authPassword = value; OnPropertyChanged(); } }
 
+    private int _pollIntervalMinutes = 5;
+    public int PollIntervalMinutes { get => _pollIntervalMinutes; set { _pollIntervalMinutes = value; OnPropertyChanged(); } }
+
+    private int _maxRetryAttempts = 4;
+    public int MaxRetryAttempts { get => _maxRetryAttempts; set { _maxRetryAttempts = value; OnPropertyChanged(); } }
+
+    private double _retryBaseDelaySeconds = 2.0;
+    public double RetryBaseDelaySeconds { get => _retryBaseDelaySeconds; set { _retryBaseDelaySeconds = value; OnPropertyChanged(); } }
+
+    private int _handlerLifetimeMinutes = 15;
+    public int HandlerLifetimeMinutes { get => _handlerLifetimeMinutes; set { _handlerLifetimeMinutes = value; OnPropertyChanged(); } }
 
     public ObservableCollection<ProjectRowViewModel> Projects { get; } = [];
     public ObservableCollection<AzureDevOps.Core.Interfaces.SystemLogEntity> CurrentLogs { get; } = new();
@@ -323,6 +334,10 @@ public class MainWindowViewModel : INotifyPropertyChanged
                     if (!string.IsNullOrEmpty(config.BaseUrl)) BaseUrl = config.BaseUrl;
                     if (!string.IsNullOrEmpty(config.Collection)) Collection = config.Collection;
                     if (!string.IsNullOrEmpty(config.ApiVersion)) ApiVersion = config.ApiVersion;
+                    if (config.PollIntervalSeconds > 0) PollIntervalMinutes = config.PollIntervalSeconds / 60;
+                    if (config.MaxRetryAttempts > 0) MaxRetryAttempts = config.MaxRetryAttempts;
+                    if (config.RetryBaseDelaySeconds > 0) RetryBaseDelaySeconds = config.RetryBaseDelaySeconds;
+                    if (config.HandlerLifetimeMinutes > 0) HandlerLifetimeMinutes = config.HandlerLifetimeMinutes;
                     if (config.Auth != null)
                     {
                         UseDefaultCredentials = config.Auth.UseDefaultCredentials;
@@ -346,11 +361,15 @@ public class MainWindowViewModel : INotifyPropertyChanged
         StatusMessage = "Guardando configuración…";
         try
         {
-                        var config = new AzureDevOpsOptions
+            var config = new AzureDevOpsOptions
             {
                 BaseUrl = this.BaseUrl,
                 Collection = this.Collection,
                 ApiVersion = this.ApiVersion,
+                PollIntervalSeconds = this.PollIntervalMinutes * 60,
+                MaxRetryAttempts = this.MaxRetryAttempts,
+                RetryBaseDelaySeconds = this.RetryBaseDelaySeconds,
+                HandlerLifetimeMinutes = this.HandlerLifetimeMinutes,
                 Auth = new AzureDevOpsAuthOptions
                 {
                     UseDefaultCredentials = this.UseDefaultCredentials,
@@ -361,6 +380,17 @@ public class MainWindowViewModel : INotifyPropertyChanged
             };
             var configJson = System.Text.Json.JsonSerializer.Serialize(config);
             await Task.Run(() => _configurationRepository.SetConfigurationAsync(AzureDevOpsOptions.SectionName, configJson, ct), ct);
+            
+            // Sync to local config.json file for other tools
+            try
+            {
+                await System.IO.File.WriteAllTextAsync("config.json", configJson, ct);
+            }
+            catch (Exception fileEx)
+            {
+                _logger.LogWarning(fileEx, "No se pudo actualizar el archivo local config.json");
+            }
+            
             StatusMessage = "Configuración guardada en la base de datos.";
             _logger.LogInformation("System configuration saved to DB.");
             ShowNotification("Configuración Guardada", "Los cambios se guardaron con éxito en la base de datos.", false);

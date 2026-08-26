@@ -67,7 +67,7 @@ try
                 var dynamicConfig = provider.GetRequiredService<IDynamicConfigProvider>();
                 return NtlmHttpHandlerFactory.CreateHandler(dynamicConfig);
             })
-            .SetHandlerLifetime(TimeSpan.FromMinutes(2)) // We can safely cache the handler now!
+            .SetHandlerLifetime(TimeSpan.FromMinutes(devOpsConfig.HandlerLifetimeMinutes > 0 ? devOpsConfig.HandlerLifetimeMinutes : 15)) // User configurable or 15 mins default
             .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
             // Main Background Ingestion Orchestrator

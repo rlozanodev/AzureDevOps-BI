@@ -12,6 +12,7 @@ public class AzureDevOpsOptions
     public int PollIntervalSeconds { get; set; } = 300;
     public int MaxRetryAttempts { get; set; } = 4;
     public double RetryBaseDelaySeconds { get; set; } = 2.0;
+    public int HandlerLifetimeMinutes { get; set; } = 15;
     public AzureDevOpsAuthOptions Auth { get; set; } = new();
 }
 

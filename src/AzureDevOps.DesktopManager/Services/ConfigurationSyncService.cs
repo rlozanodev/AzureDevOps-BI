@@ -64,10 +64,6 @@ public class ConfigurationSyncService : BackgroundService
             _logger.LogError(ex, "Error syncing configuration.");
         }
 
-        // Keep alive or loop if needed
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(60000, stoppingToken);
-        }
+        _logger.LogInformation("Configuration Sync Service initial startup complete.");
     }
 }

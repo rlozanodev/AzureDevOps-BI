@@ -97,7 +97,7 @@ public partial class App : Application
                         var dynamicConfig = provider.GetRequiredService<IDynamicConfigProvider>();
                         return NtlmHttpHandlerFactory.CreateHandler(dynamicConfig);
                     })
-                    .SetHandlerLifetime(TimeSpan.FromMinutes(2)) // Force handler recreation so Auth changes take effect immediately
+                    .SetHandlerLifetime(TimeSpan.FromMinutes(devOpsConfig.HandlerLifetimeMinutes > 0 ? devOpsConfig.HandlerLifetimeMinutes : 15)) // User configurable or 15 mins default
                     .AddPolicyHandler(GetRetryPolicy(devOpsConfig.MaxRetryAttempts, devOpsConfig.RetryBaseDelaySeconds));
 
                     // ── ViewModel (transient: una instancia nueva por ventana) ─

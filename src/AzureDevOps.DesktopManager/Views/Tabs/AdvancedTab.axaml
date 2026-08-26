@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AzureDevOps.DesktopManager.Views.Tabs.AdvancedTab"
+             xmlns:vm="using:AzureDevOps.DesktopManager.ViewModels"
+             x:DataType="vm:MainWindowViewModel"
+             x:CompileBindings="False">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="24">
+            
+            <TextBlock Text="⚙️ Ajustes Avanzados de Rendimiento" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
+            <TextBlock Text="Configura los tiempos de sincronización, la gestión de conexiones y las políticas de reintento. Precaución: Estos ajustes afectan el rendimiento del sistema local y del servidor Azure DevOps." 
+                       TextWrapping="Wrap" Foreground="{DynamicResource SecondaryText}" FontSize="13" Margin="0,0,0,16"/>
+
+            <Border Classes="Card">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Frecuencia de Sincronización (Orquestador)" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource PrimaryText}"/>
+                    <TextBlock Text="Tiempo en minutos entre cada ciclo completo de ingesta de datos." Foreground="{DynamicResource SecondaryText}" FontSize="12" Margin="0,-8,0,8"/>
+                    
+                    <Grid ColumnDefinitions="*, *" RowDefinitions="Auto">
+                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                            <TextBlock Text="Intervalo (Minutos)"/>
+                            <NumericUpDown Value="{Binding PollIntervalMinutes}" Minimum="1" Maximum="1440" FormatString="0" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Políticas de Reintento (HTTP Polly)" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource PrimaryText}"/>
+                    <TextBlock Text="Configuración de resiliencia de red utilizando backoff exponencial. (Estándar recomendado: 4 reintentos, 2.0s base)" Foreground="{DynamicResource SecondaryText}" FontSize="12" Margin="0,-8,0,8"/>
+
+                    <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto">
+                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,8,16">
+                            <TextBlock Text="Intentos Máximos (MaxRetryAttempts)"/>
+                            <NumericUpDown Value="{Binding MaxRetryAttempts}" Minimum="0" Maximum="10" FormatString="0" />
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4" Margin="8,0,0,16">
+                            <TextBlock Text="Retraso Base (Segundos)"/>
+                            <NumericUpDown Value="{Binding RetryBaseDelaySeconds}" Minimum="0.5" Maximum="10.0" Increment="0.5" FormatString="0.0" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Reciclaje de Conexiones NTLM (HandlerLifetime)" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource PrimaryText}"/>
+                    <TextBlock Text="Frecuencia en la que se destruyen las conexiones Keep-Alive para renegociar las credenciales NTLM. Valores bajos aumentan la latencia. (Estándar recomendado: 15 a 30 mins)" Foreground="{DynamicResource SecondaryText}" FontSize="12" TextWrapping="Wrap" Margin="0,-8,0,8"/>
+
+                    <Grid ColumnDefinitions="*, *">
+                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                            <TextBlock Text="Tiempo de Vida (Minutos)"/>
+                            <NumericUpDown Value="{Binding HandlerLifetimeMinutes}" Minimum="1" Maximum="1440" FormatString="0" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Botones de Acción -->
+            <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button Classes="Primary" Command="{Binding SaveConfigurationAsync}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="💾" FontSize="14" VerticalAlignment="Center"/>
+                        <TextBlock Text="Guardar Ajustes Avanzados" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
