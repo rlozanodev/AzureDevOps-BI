@@ -44,11 +44,11 @@ public class AzureDevOpsClient : IAzureDevOpsClient
         string requestUrl;
         if (!string.IsNullOrWhiteSpace(project))
         {
-            requestUrl = $"{baseUrl}/{cleanCollection}/{Uri.EscapeDataString(project)}/_apis/wit/wiql?api-version={_configProvider.Current.ApiVersion}";
+            requestUrl = $"{baseUrl}/{cleanCollection}/{Uri.EscapeDataString(project)}/_apis/wit/wiql?timePrecision=true&api-version={_configProvider.Current.ApiVersion}";
         }
         else
         {
-            requestUrl = $"{baseUrl}/{cleanCollection}/_apis/wit/wiql?api-version={_configProvider.Current.ApiVersion}";
+            requestUrl = $"{baseUrl}/{cleanCollection}/_apis/wit/wiql?timePrecision=true&api-version={_configProvider.Current.ApiVersion}";
         }
 
         string wiql;
