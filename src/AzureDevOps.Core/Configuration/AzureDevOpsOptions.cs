@@ -4,8 +4,8 @@ public class AzureDevOpsOptions
 {
     public const string SectionName = "AzureDevOps";
 
-    public string BaseUrl { get; set; } = "http://edvwp-tfs19-ap/";
-    public string Collection { get; set; } = "DefaultCollection";
+    public string BaseUrl { get; set; } = string.Empty;
+    public string Collection { get; set; } = string.Empty;
     public string? Project { get; set; }
     public string ApiVersion { get; set; } = "5.0-preview";
     public int BatchSize { get; set; } = 200;

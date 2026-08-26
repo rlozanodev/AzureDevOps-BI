@@ -39,7 +39,7 @@ public class ConfigurationSyncService : BackgroundService
 
             // 2. Read DB config if DB is alive (assuming it is, this is just a mockup for the described logic)
             // Ideally we check DB connection here
-            var dbConfigJson = await _configurationRepository.GetConfigurationAsync("SystemConfig", stoppingToken);
+            var dbConfigJson = await _configurationRepository.GetConfigurationAsync(AzureDevOpsOptions.SectionName, stoppingToken);
 
             if (!string.IsNullOrEmpty(dbConfigJson))
             {
@@ -52,7 +52,7 @@ public class ConfigurationSyncService : BackgroundService
             else if (!string.IsNullOrEmpty(localConfigJson))
             {
                 _logger.LogInformation("Loaded configuration from local file. Syncing to DB.");
-                await _configurationRepository.SetConfigurationAsync("SystemConfig", localConfigJson, stoppingToken);
+                await _configurationRepository.SetConfigurationAsync(AzureDevOpsOptions.SectionName, localConfigJson, stoppingToken);
             }
             else
             {

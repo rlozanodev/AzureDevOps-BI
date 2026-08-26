@@ -314,7 +314,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     {
         try
         {
-            var configJson = await Task.Run(() => _configurationRepository.GetConfigurationAsync("SystemConfig"));
+            var configJson = await Task.Run(() => _configurationRepository.GetConfigurationAsync(AzureDevOpsOptions.SectionName));
             if (!string.IsNullOrWhiteSpace(configJson))
             {
                 var config = System.Text.Json.JsonSerializer.Deserialize<AzureDevOps.Core.Configuration.AzureDevOpsOptions>(configJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -360,7 +360,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
                 }
             };
             var configJson = System.Text.Json.JsonSerializer.Serialize(config);
-            await Task.Run(() => _configurationRepository.SetConfigurationAsync("SystemConfig", configJson, ct), ct);
+            await Task.Run(() => _configurationRepository.SetConfigurationAsync(AzureDevOpsOptions.SectionName, configJson, ct), ct);
             StatusMessage = "Configuración guardada en la base de datos.";
             _logger.LogInformation("System configuration saved to DB.");
             ShowNotification("Configuración Guardada", "Los cambios se guardaron con éxito en la base de datos.", false);

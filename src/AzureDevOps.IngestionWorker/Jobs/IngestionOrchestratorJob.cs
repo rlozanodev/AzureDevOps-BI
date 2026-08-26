@@ -64,20 +64,43 @@ public class IngestionOrchestratorJob : BackgroundService
             try
             {
                 _logger.LogInformation("================================================================================");
-                _logger.LogInformation("Starting Ingestion Cycle for Collection: '{Collection}' at {Time:u}",
-                    collectionName, DateTime.UtcNow);
+                _logger.LogInformation("Starting Ingestion Cycle at {Time:u}", DateTime.UtcNow);
 
                 // 1. Fase de Descubrimiento (Scraping)
                 _logger.LogInformation("--- FASE 1: Descubrimiento de Proyectos ---");
                 try
                 {
-                    var discoveredProjects = await _azureDevOpsClient.GetProjectsAsync(collectionName, stoppingToken);
-                    await _catalogRepository.UpsertProjectsAsync(collectionName, discoveredProjects, stoppingToken);
-                    _logger.LogInformation("Descubrimiento completado. Encontrados {Count} proyectos.", discoveredProjects.Count);
+                    var collectionsToProcess = new List<string>();
+                    
+                    if (string.IsNullOrWhiteSpace(collectionName))
+                    {
+                        _logger.LogInformation("No collection configured. Auto-discovering collections...");
+                        var collections = await _azureDevOpsClient.GetCollectionsAsync(stoppingToken);
+                        collectionsToProcess.AddRange(System.Linq.Enumerable.Select(collections, c => c.Name));
+                    }
+                    else
+                    {
+                        collectionsToProcess.Add(collectionName);
+                    }
+
+                    foreach (var colName in collectionsToProcess)
+                    {
+                        _logger.LogInformation("Descubriendo proyectos en la colección: {CollectionName}", colName);
+                        try
+                        {
+                            var discoveredProjects = await _azureDevOpsClient.GetProjectsAsync(colName, stoppingToken);
+                            await _catalogRepository.UpsertProjectsAsync(colName, discoveredProjects, stoppingToken);
+                            _logger.LogInformation("Encontrados {Count} proyectos en la colección {CollectionName}.", discoveredProjects.Count, colName);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error descubriendo proyectos en la colección {CollectionName}.", colName);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error durante la fase de descubrimiento.");
+                    _logger.LogError(ex, "Error general durante la fase de descubrimiento.");
                     // Continues to ingestion phase with already known projects
                 }
 
@@ -91,20 +114,21 @@ public class IngestionOrchestratorJob : BackgroundService
                     var syncStartUtc = DateTime.UtcNow;
                     var entityName = "work_items";
                     var projectName = project.ProjectName;
+                    var currentCollectionName = project.CollectionName;
 
-                    _logger.LogInformation("Procesando proyecto: {ProjectName}", projectName);
+                    _logger.LogInformation("Procesando proyecto: {ProjectName} en colección: {CollectionName}", projectName, currentCollectionName);
 
                     try
                     {
-                        var watermark = await _stagingRepository.GetWatermarkAsync(entityName, collectionName, projectName, stoppingToken);
-                        await _stagingRepository.UpdateWatermarkStartAsync(entityName, collectionName, projectName, syncStartUtc, stoppingToken);
+                        var watermark = await _stagingRepository.GetWatermarkAsync(entityName, currentCollectionName, projectName, stoppingToken);
+                        await _stagingRepository.UpdateWatermarkStartAsync(entityName, currentCollectionName, projectName, syncStartUtc, stoppingToken);
 
                         var changedSince = watermark.LastWatermarkUtc > new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                             ? watermark.LastWatermarkUtc
                             : (DateTime?)null;
 
                         var workItemIds = await _azureDevOpsClient.QueryWorkItemIdsAsync(
-                            collectionName,
+                            currentCollectionName,
                             projectName,
                             changedSince,
                             stoppingToken
@@ -117,7 +141,7 @@ public class IngestionOrchestratorJob : BackgroundService
                         if (totalItemsFound > 0)
                         {
                             await foreach (var batch in _azureDevOpsClient.StreamWorkItemBatchesAsync(
-                                collectionName,
+                                currentCollectionName,
                                 workItemIds,
                                 devOpsOptions.BatchSize,
                                 stoppingToken))
@@ -142,7 +166,7 @@ public class IngestionOrchestratorJob : BackgroundService
                             var syncEndUtc = DateTime.UtcNow;
                             await _stagingRepository.UpdateWatermarkSuccessAsync(
                                 entityName,
-                                collectionName,
+                                currentCollectionName,
                                 projectName,
                                 maxChangedDateUtc,
                                 totalSynced,
@@ -163,7 +187,7 @@ public class IngestionOrchestratorJob : BackgroundService
                             _logger.LogInformation("Proyecto {ProjectName} sin cambios desde {Watermark:u}.", projectName, watermark.LastWatermarkUtc);
                             await _stagingRepository.UpdateWatermarkSuccessAsync(
                                 entityName,
-                                collectionName,
+                                currentCollectionName,
                                 projectName,
                                 watermark.LastWatermarkUtc,
                                 0,
@@ -172,14 +196,14 @@ public class IngestionOrchestratorJob : BackgroundService
                             );
                         }
                     }
-                    catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    catch (System.Net.Http.HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
                     {
                         _logger.LogWarning("Acceso denegado (403) para el proyecto {ProjectName}. Se saltará en futuros ciclos.", projectName);
                         await _catalogRepository.MarkProjectAccessStatusAsync(project.ProjectId, "FORBIDDEN", stoppingToken);
                         
                         await _stagingRepository.UpdateWatermarkFailureAsync(
                             entityName,
-                            collectionName,
+                            currentCollectionName,
                             projectName,
                             "403 Forbidden",
                             DateTime.UtcNow,
@@ -191,7 +215,7 @@ public class IngestionOrchestratorJob : BackgroundService
                         _logger.LogError(ex, "Error al sincronizar el proyecto {ProjectName}.", projectName);
                         await _stagingRepository.UpdateWatermarkFailureAsync(
                             entityName,
-                            collectionName,
+                            currentCollectionName,
                             projectName,
                             ex.Message,
                             DateTime.UtcNow,
