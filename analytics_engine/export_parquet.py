@@ -62,47 +62,92 @@ def export_parquet(project_name, output_path):
     export_query = f"""
     COPY (
         SELECT 
-            f.work_item_id,
-            f.rev,
-            f.title,
-            p.project_name,
-            t.work_item_type,
-            t.category AS work_item_category,
-            s.state_name,
-            s.state_category,
-            i.iteration_path,
-            i.sprint_name,
-            a.area_path,
-            m_ass.display_name AS assigned_to,
-            m_cre.display_name AS created_by,
-            f.created_date_utc,
-            f.activated_date_utc,
-            f.closed_date_utc,
-            f.changed_date_utc,
-            f.lead_time_days,
-            f.cycle_time_days,
-            f.queue_time_days,
-            f.wip_age_days,
-            f.is_closed,
-            f.is_active,
-            f.story_points,
-            f.original_estimate,
-            f.remaining_work,
-            f.completed_work,
-            f.priority,
-            f.severity,
-            f.tags,
-            f.last_transformed_at_utc
-        FROM pg.analytics.fact_work_items f
-        LEFT JOIN pg.analytics.dim_project p ON f.project_key = p.project_key
-        LEFT JOIN pg.analytics.dim_work_item_type t ON f.type_key = t.type_key
-        LEFT JOIN pg.analytics.dim_state s ON f.state_key = s.state_key
-        LEFT JOIN pg.analytics.dim_iteration i ON f.iteration_key = i.iteration_key
-        LEFT JOIN pg.analytics.dim_area a ON f.area_key = a.area_key
-        LEFT JOIN pg.analytics.dim_member m_ass ON f.assigned_to_key = m_ass.member_key
-        LEFT JOIN pg.analytics.dim_member m_cre ON f.created_by_key = m_cre.member_key
-        WHERE p.project_name = '{project_name.replace("'", "''")}'
-        ORDER BY f.work_item_id ASC
+            r.id AS work_item_id,
+            r.rev,
+            r.title,
+            r.project_name,
+            r.work_item_type,
+            CASE
+                WHEN LOWER(r.work_item_type) IN ('epic') THEN 'Epic'
+                WHEN LOWER(r.work_item_type) IN ('feature') THEN 'Feature'
+                WHEN LOWER(r.work_item_type) IN ('user story', 'product backlog item', 'requirement') THEN 'Requirement'
+                WHEN LOWER(r.work_item_type) IN ('bug', 'defect', 'issue') THEN 'Bug'
+                WHEN LOWER(r.work_item_type) IN ('task', 'sub-task') THEN 'Task'
+                ELSE 'Requirement'
+            END AS work_item_category,
+            r.state AS state_name,
+            CASE
+                WHEN LOWER(r.state) IN ('new', 'proposed', 'to do', 'backlog', 'open') THEN 'Proposed'
+                WHEN LOWER(r.state) IN ('active', 'in progress', 'committed', 'in development', 'doing') THEN 'In Progress'
+                WHEN LOWER(r.state) IN ('resolved', 'done', 'closed', 'completed', 'verified') THEN 'Completed'
+                WHEN LOWER(r.state) IN ('removed', 'cancelled', 'rejected') THEN 'Removed'
+                ELSE 'In Progress'
+            END AS state_category,
+            r.iteration_path,
+            COALESCE(NULLIF(SPLIT_PART(r.iteration_path, '\\', ARRAY_LENGTH(STRING_TO_ARRAY(r.iteration_path, '\\'), 1)), ''), r.iteration_path) AS sprint_name,
+            r.area_path,
+            COALESCE(r.assigned_to_name, 'Sin Asignar') AS assigned_to,
+            COALESCE(r.created_by_name, 'Desconocido') AS created_by,
+            r.created_date AS created_date_utc,
+            r.activated_date AS activated_date_utc,
+            r.closed_date AS closed_date_utc,
+            r.changed_date AS changed_date_utc,
+            
+            -- Lead Time: Tiempo total desde creación hasta cierre (días)
+            CASE
+                WHEN r.closed_date IS NOT NULL AND r.created_date IS NOT NULL AND r.closed_date >= r.created_date
+                    THEN ROUND(EXTRACT(EPOCH FROM (r.closed_date - r.created_date)) / 86400.0, 2)
+                ELSE NULL
+            END AS lead_time_days,
+            
+            -- Cycle Time: Tiempo activo de trabajo desde activación hasta cierre (días)
+            CASE
+                WHEN r.closed_date IS NOT NULL AND r.activated_date IS NOT NULL AND r.closed_date >= r.activated_date
+                    THEN ROUND(EXTRACT(EPOCH FROM (r.closed_date - r.activated_date)) / 86400.0, 2)
+                WHEN r.closed_date IS NOT NULL AND r.created_date IS NOT NULL AND r.closed_date >= r.created_date
+                    THEN ROUND(EXTRACT(EPOCH FROM (r.closed_date - r.created_date)) / 86400.0, 2)
+                ELSE NULL
+            END AS cycle_time_days,
+            
+            -- Queue Time: Tiempo en cola antes de ser activado (días)
+            CASE
+                WHEN r.activated_date IS NOT NULL AND r.created_date IS NOT NULL AND r.activated_date >= r.created_date
+                    THEN ROUND(EXTRACT(EPOCH FROM (r.activated_date - r.created_date)) / 86400.0, 2)
+                ELSE NULL
+            END AS queue_time_days,
+            
+            -- WIP Age: Antigüedad de ítems actualmente en curso (días)
+            CASE
+                WHEN ((CASE
+                        WHEN LOWER(r.state) IN ('active', 'in progress', 'committed', 'in development', 'doing') THEN 'In Progress'
+                        WHEN LOWER(r.state) IN ('resolved', 'done', 'closed', 'completed', 'verified') THEN 'Completed'
+                        WHEN LOWER(r.state) IN ('removed', 'cancelled', 'rejected') THEN 'Removed'
+                        ELSE 'Proposed' END) = 'In Progress' OR (r.closed_date IS NULL AND (CASE
+                        WHEN LOWER(r.state) IN ('removed', 'cancelled', 'rejected') THEN 'Removed'
+                        ELSE 'Other' END) <> 'Removed'))
+                    THEN ROUND(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(r.activated_date, r.created_date))) / 86400.0, 2)
+                ELSE NULL
+            END AS wip_age_days,
+            
+            -- Indicadores
+            CASE WHEN (CASE
+                        WHEN LOWER(r.state) IN ('resolved', 'done', 'closed', 'completed', 'verified') THEN 'Completed'
+                        ELSE 'Other' END) = 'Completed' OR r.closed_date IS NOT NULL THEN TRUE ELSE FALSE END AS is_closed,
+            CASE WHEN (CASE
+                        WHEN LOWER(r.state) IN ('active', 'in progress', 'committed', 'in development', 'doing') THEN 'In Progress'
+                        ELSE 'Other' END) = 'In Progress' AND r.closed_date IS NULL THEN TRUE ELSE FALSE END AS is_active,
+                        
+            r.story_points,
+            r.original_estimate,
+            r.remaining_work,
+            r.completed_work,
+            r.priority,
+            r.severity,
+            r.tags,
+            CURRENT_TIMESTAMP AS last_transformed_at_utc
+        FROM pg.staging.raw_work_items r
+        WHERE r.project_name = '{project_name.replace("'", "''")}'
+        ORDER BY r.id ASC
     ) TO '{output_path}' (FORMAT PARQUET, COMPRESSION 'SNAPPY');
     """
     
