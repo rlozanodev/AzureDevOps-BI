@@ -21,6 +21,8 @@ public class ProjectRowViewModel : INotifyPropertyChanged
     private bool _isEnabled;
     private string _accessStatus = string.Empty;
 
+    private readonly MainWindowViewModel? _parent;
+
     public Guid ProjectId { get; init; }
     public string CollectionName { get; init; } = string.Empty;
     public string ProjectName { get; init; } = string.Empty;
@@ -41,14 +43,37 @@ public class ProjectRowViewModel : INotifyPropertyChanged
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-    public static ProjectRowViewModel FromEntity(CatalogProjectEntity e) => new()
+    public ProjectRowViewModel() {}
+
+    public ProjectRowViewModel(MainWindowViewModel parent)
     {
-        ProjectId = e.ProjectId,
-        CollectionName = e.CollectionName,
-        ProjectName = e.ProjectName,
-        AccessStatus = e.AccessStatus,
-        IsEnabled = e.IsEnabled
-    };
+        _parent = parent;
+    }
+
+    public async Task ExportToParquet()
+    {
+        if (_parent != null)
+        {
+            await _parent.ExportToParquetCommand(this);
+        }
+    }
+
+    public static ProjectRowViewModel FromEntity(CatalogProjectEntity e, MainWindowViewModel? parent = null) => 
+        parent != null ? new(parent)
+        {
+            ProjectId = e.ProjectId,
+            CollectionName = e.CollectionName,
+            ProjectName = e.ProjectName,
+            AccessStatus = e.AccessStatus,
+            IsEnabled = e.IsEnabled
+        } : new()
+        {
+            ProjectId = e.ProjectId,
+            CollectionName = e.CollectionName,
+            ProjectName = e.ProjectName,
+            AccessStatus = e.AccessStatus,
+            IsEnabled = e.IsEnabled
+        };
 }
 
 /// <summary>
@@ -240,7 +265,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             var projects = await Task.Run(() => _catalogRepository.GetEnabledProjectsAsync(ct), ct);
             Projects.Clear();
             foreach (var p in projects)
-                Projects.Add(ProjectRowViewModel.FromEntity(p));
+                Projects.Add(ProjectRowViewModel.FromEntity(p, this));
 
             IsDbConnected = true;
             StatusMessage = $"Se cargaron {projects.Count} proyecto(s).";
@@ -287,9 +312,10 @@ public class MainWindowViewModel : INotifyPropertyChanged
         finally { IsBusy = false; }
     }
 
-    public async Task ExportToParquetCommand(ProjectRowViewModel row)
+    public async Task ExportToParquetCommand(object rowObj)
     {
         if (IsBusy) return;
+        var row = rowObj as ProjectRowViewModel;
         if (row == null || string.IsNullOrWhiteSpace(row.ProjectName)) return;
 
         try

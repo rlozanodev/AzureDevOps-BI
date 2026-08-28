@@ -31,8 +31,7 @@
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <Button Content="💾 Parquet" 
-                                                                Command="{Binding $parent[UserControl].DataContext.ExportToParquetCommand}"
-                                                                CommandParameter="{Binding}"
+                                                                Command="{Binding ExportToParquet}"
                                                                 Classes="Secondary" Padding="8,4"
                                                                 ToolTip.Tip="Descargar datos procesados en formato Parquet"/>
                                                     </DataTemplate>
