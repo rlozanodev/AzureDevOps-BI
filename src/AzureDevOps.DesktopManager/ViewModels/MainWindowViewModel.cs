@@ -147,16 +147,20 @@ public class MainWindowViewModel : INotifyPropertyChanged
         set { _token = value; OnPropertyChanged(); }
     }
 
+    private readonly IPythonTransformationService _transformationService;
+
     public MainWindowViewModel(
         ICatalogRepository catalogRepository,
         IConfigurationRepository configurationRepository,
         AzureDevOps.Core.Interfaces.ILogRepository logRepository,
+        IPythonTransformationService transformationService,
         IOptions<AzureDevOpsOptions> devOpsOptions,
         ILogger<MainWindowViewModel> logger)
     {
         _catalogRepository = catalogRepository;
         _logRepository = logRepository;
         _configurationRepository = configurationRepository;
+        _transformationService = transformationService;
         _devOpsOptions = devOpsOptions.Value;
         _logger = logger;
 
@@ -281,6 +285,57 @@ public class MainWindowViewModel : INotifyPropertyChanged
             ShowNotification("Error al guardar", ex.Message, true);
         }
         finally { IsBusy = false; }
+    }
+
+    public async Task ExportToParquetCommand(ProjectRowViewModel row)
+    {
+        if (IsBusy) return;
+        if (row == null || string.IsNullOrWhiteSpace(row.ProjectName)) return;
+
+        try
+        {
+            var desktop = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+            if (desktop?.MainWindow == null) return;
+
+            var storageProvider = desktop.MainWindow.StorageProvider;
+            var file = await storageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title = $"Exportar {row.ProjectName} a Parquet",
+                DefaultExtension = "parquet",
+                SuggestedFileName = $"{row.ProjectName.Replace(" ", "_")}_data.parquet",
+                FileTypeChoices = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Archivos Parquet") { Patterns = new[] { "*.parquet" } } }
+            });
+
+            if (file != null)
+            {
+                IsBusy = true;
+                StatusMessage = $"Exportando {row.ProjectName} a Parquet...";
+
+                var result = await _transformationService.ExportProjectToParquetAsync(row.ProjectName, file.Path.LocalPath);
+
+                if (result.Success)
+                {
+                    StatusMessage = $"Exportación exitosa.";
+                    ShowNotification("Parquet Exportado", $"Los datos se exportaron a {file.Name}.", false);
+                }
+                else
+                {
+                    StatusMessage = $"Error en exportación.";
+                    _logger.LogError("Parquet export failed: {Error}", result.ErrorMessage);
+                    ShowNotification("Error al Exportar", $"Ocurrió un error: {result.ErrorMessage}", true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error interno.";
+            _logger.LogError(ex, "Failed to launch export to Parquet.");
+            ShowNotification("Error", ex.Message, true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     public async Task TestTfsConnectionAsync(CancellationToken ct = default)

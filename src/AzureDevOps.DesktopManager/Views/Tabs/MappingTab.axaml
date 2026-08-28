@@ -27,6 +27,17 @@
                                             <DataGridTextColumn Header="Proyecto" Binding="{Binding ProjectName}" IsReadOnly="True" Width="*" />
                                             <DataGridTextColumn Header="Estado de Acceso" Binding="{Binding AccessStatus}" Width="150"/>
                                             <DataGridCheckBoxColumn Header="Habilitado" Binding="{Binding IsEnabled}" Width="100"/>
+                                            <DataGridTemplateColumn Header="Exportar">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="💾 Parquet" 
+                                                                Command="{Binding $parent[UserControl].DataContext.ExportToParquetCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                Classes="Secondary" Padding="8,4"
+                                                                ToolTip.Tip="Descargar datos procesados en formato Parquet"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </Border>
